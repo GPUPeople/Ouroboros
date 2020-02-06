@@ -1,7 +1,7 @@
 #pragma once
 #include "Utility.h"
 
-namespace Ouroboros
+namespace Ouro
 {
 	__forceinline__ __device__ unsigned int ldg_cg(const unsigned int* src)
 	{
@@ -45,6 +45,23 @@ namespace Ouroboros
 		asm("st.volatile.v2.u32 [%0], {%1, %2};"
 			:
 		: "l"(dest), "r"(src.x), "r"(src.y));
+	#endif
+	}
+
+	static __forceinline__ __device__ int lane_id()
+	{
+		return threadIdx.x & (WARP_SIZE - 1);
+	}
+
+	__forceinline__ __device__ void sleep(unsigned int factor = 1)
+	{
+	#ifdef __CUDA_ARCH__
+	#if (__CUDA_ARCH__ >= 700)
+		//__nanosleep(SLEEP_TIME);
+		__nanosleep(SLEEP_TIME * factor);
+	#else
+		__threadfence();
+	#endif
 	#endif
 	}
 }
