@@ -87,7 +87,7 @@ struct OuroborosChunks : OuroborosBase
 
 	__forceinline__ __device__ void* allocPage(size_t size); /* Size in number of items, NOT Bytes */
 
-	__forceinline__ __device__ void freePage(void* ptr);
+	__forceinline__ __device__ void freePage(MemoryIndex index);
 
 	// #################################################################################################
 	// Functionality
@@ -157,7 +157,7 @@ struct OuroborosPages : OuroborosBase
 
     __forceinline__ __device__ void* allocPage(size_t size); /* Size in number of items, NOT Bytes */
 
-	 __forceinline__ __device__ void freePage(void* ptr);
+	 __forceinline__ __device__ void freePage(MemoryIndex index);
 
 	// #################################################################################################
 	// Functionality
@@ -228,11 +228,11 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 
 	void reinitialize(float overallocation_factor);
 
-	__forceinline__ __device__ void* allocPage(size_t size); /* Size in number of items, NOT Bytes */
+	__forceinline__ __device__ void* malloc(size_t size); /* Size in number of items, NOT Bytes */
 
-	__forceinline__ __device__ void freePage(void* adjacency);
+	__forceinline__ __device__ void free(void* adjacency);
 
-	__forceinline__ __device__ void freePageRecursive(unsigned int page_size, MemoryIndex index, void* adjacency);
+	__forceinline__ __device__ void freePageRecursive(unsigned int page_size, MemoryIndex index);
 
 	__forceinline__ __device__ void enqueueInitialChunk(index_t queue_index, index_t chunk_index, int available_pages, index_t pages_per_chunk)
 	{
@@ -330,7 +330,7 @@ struct Ouroboros<>
 	void init(Memory* memory) {}
 	size_t totalMemoryManagerSize() {return 0ULL;}
 
-	__forceinline__ __device__ void* allocPage(size_t size)
+	__forceinline__ __device__ void* malloc(size_t size)
 	{
 		printf("Spill over into Cuda Allocator: %llu\n", AllocationHelper::getNextPow2(size) * sizeof(DataType));
 	#ifdef __CUDA_ARCH__
