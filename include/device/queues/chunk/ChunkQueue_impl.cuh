@@ -78,11 +78,11 @@ __forceinline__ __device__ bool ChunkQueue<ChunkType>::enqueueInitialChunk(Memor
 // ##############################################################################################################################################
 //
 template <typename ChunkType>
-template <typename MemoryManagerType, typename DataType>
+template <typename MemoryManagerType>
 __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerType* memory_manager)
 {
 	uint32_t page_index, chunk_index;
-	auto pages_per_chunk = MemoryManagerType::template QI<DataType>::getPagesPerChunkFromQueueIndex(queue_index_);
+	auto pages_per_chunk = MemoryManagerType::QI::getPagesPerChunkFromQueueIndex(queue_index_);
 	ChunkType* chunk{ nullptr };
 
 	// Try to allocate a chunk
@@ -94,7 +94,7 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 				printf("TODO: Could not allocate chunk!!!\n");
 		}
 
-	 	chunk = ChunkType::template initializeEmptyChunk<DataType>(memory_manager->d_data, memory_manager->start_index, chunk_index, pages_per_chunk);
+	 	chunk = ChunkType::initializeEmptyChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, pages_per_chunk);
 		 // Please do NOT reorder here
 		__threadfence_block();
 	 	enqueueChunk(chunk_index, pages_per_chunk, chunk);
@@ -163,7 +163,7 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 		}
 	}
 	
-	return chunk->template getPage<DataType>(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index);
+	return chunk->getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index);
 }
 
 // ##############################################################################################################################################

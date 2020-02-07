@@ -55,7 +55,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::guaranteeWarpSyncPerChunk
 						printf("%d : %d died in gWS from %s index: %u - ptr: %p | mask: %x\n", threadIdx.x, blockIdx.x, message, chunk_ptr->chunk_index_, chunk_ptr, active_mask);
 						__trap();
 					}
-					sleepy(counter);
+					Ouro::sleep(counter);
 				}
 
 				// Do NOT reorder here
@@ -91,8 +91,8 @@ __forceinline__ __device__ unsigned int QueueChunk<ChunkBase>::enqueue(const uns
 	while ((test_val = atomicCAS(queue_ + position, DeletionMarker<QueueDataType>::val, element)) != DeletionMarker<QueueDataType>::val)
 	{
 		// TODO: Change this back!
-		// sleepy(counter);
-		sleepy();
+		// Ouro::sleep(counter);
+		Ouro::sleep();
 		if(++counter > (1000*1000*10))
 		{
 			if (!FINAL_RELEASE)
@@ -284,7 +284,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueueChunk(MemoryManage
 						printf("%d : %d died in traversal in enqueueChunk, chunk_index: %u - ptr: %p\n", threadIdx.x, blockIdx.x, chunk_ptr->chunk_index_, chunk_ptr);
 						__trap();
 					}
-					sleepy(counter);
+					Ouro::sleep(counter);
 				}
 
 				// Do NOT reorder here
@@ -326,7 +326,7 @@ __forceinline__ __device__ bool QueueChunk<ChunkBase>::dequeue(const unsigned in
 	// Element might currently not yet be present (enqueue advertised it already, but has not put element in) -> spin on value!
 	while ((element = atomicExch(queue_ + position, DeletionMarker<QueueDataType>::val)) == DeletionMarker<QueueDataType>::val)
 	{
-		sleepy();
+		Ouro::sleep(counter);
 		if(++counter > (1000*1000*10))
 		{
 			if (!FINAL_RELEASE)
@@ -400,7 +400,7 @@ __forceinline__ __device__ QueueChunk<ChunkBase>* QueueChunk<ChunkBase>::locateQ
 				printf("%d : %d died in LocateQueueChunk in virtual start, coming from %s, chunk_index: %u - ptr: %p\n", threadIdx.x, blockIdx.x, message, chunk_ptr->chunk_index_, chunk_ptr);
 				__trap();
 			}
-			sleepy(counter);
+			Ouro::sleep(counter);
 		}
 
 		// Do NOT reorder here

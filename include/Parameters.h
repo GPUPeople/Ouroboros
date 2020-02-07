@@ -2,6 +2,8 @@
 
 #include "Utility.h"
 
+static constexpr bool FINAL_RELEASE{false};
+
 // General Params
 static constexpr int CACHELINE_SIZE{ 128 };
 static constexpr int WARP_SIZE{ 32 };

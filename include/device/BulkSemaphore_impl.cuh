@@ -97,7 +97,7 @@ __forceinline__ __device__ void BulkSemaphore::wait(int N, uint32_t number_pages
 			do
 			{
 				// Yield for some time
-				sleepy(++counter);
+				Ouro::sleep(++counter);
 
 				// Read from global
 				read(new_semaphore_value);
@@ -198,7 +198,7 @@ __forceinline__ __device__ void BulkSemaphore::wait(int N, uint32_t number_pages
 				do
 				{
 					// Yield for some time
-					sleepy(++counter);
+					Ouro::sleep(++counter);
 
 					// Read from global
 					read(new_semaphore_value);

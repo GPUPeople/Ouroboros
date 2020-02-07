@@ -112,14 +112,14 @@ __forceinline__ __device__ void* PageQueue<ChunkType>::allocPage(MemoryManagerTy
 		if (!memory_manager->allocateChunk(chunk_index))
 	 		printf("TODO: Could not allocate chunk!!!\n");
 
-	 	ChunkType::template initializeChunk<DataType>(memory_manager->d_data, memory_manager->start_index, chunk_index, pages_per_chunk);
+	 	ChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, pages_per_chunk);
 	 	enqueueChunk(chunk_index, pages_per_chunk);
 	});
 	
 	// Get index from queue
 	dequeue(index);
 
-	return ChunkType::template getPage<DataType>(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index);
+	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index);
 }
 
 // ##############################################################################################################################################
