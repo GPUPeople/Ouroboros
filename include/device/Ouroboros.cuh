@@ -68,8 +68,7 @@ struct OuroborosChunks : OuroborosBase
 	using ChunkBase = CHUNK_BASE;
 	using ChunkType = Chunk<ChunkBase, ChunkSize_, SmallestPageSize_>;
 	using QueueType = QUEUE_TYPE<ChunkType>;
-	template <typename DataType>
-	using QI = QueueIndex<DataType, SmallestPageSize_, ChunkSize_>;
+	using QI = QueueIndex<SmallestPageSize_, ChunkSize_>;
 
 	static constexpr size_t memory_manager_size_() { return alignment<uint64_t>(sizeof(OuroborosChunks)); };
 	static constexpr size_t chunk_queue_size_{alignment<uint64_t>(chunk_queue_size * sizeof(index_t))};
@@ -120,7 +119,6 @@ struct OuroborosChunks : OuroborosBase
 		printf("%s", break_line_purple);
 	}
 
-	template <typename DataType>
 	__forceinline__ __device__ void printFreeResources();
 };
 
@@ -138,8 +136,7 @@ struct OuroborosPages : OuroborosBase
 	using ChunkBase = CHUNK_BASE;
 	using ChunkType = PageChunk<ChunkBase, ChunkSize_>;
 	using QueueType = QUEUE_TYPE<ChunkType>;
-	template <typename DataType>
-	using QI = QueueIndex<DataType, SmallestPageSize_, ChunkSize_>;
+	using QI = QueueIndex<SmallestPageSize_, ChunkSize_>;
 
 	static constexpr size_t memory_manager_size_() { return alignment<uint64_t>(sizeof(OuroborosPages)); };
 	static constexpr size_t chunk_queue_size_{alignment<uint64_t>(chunk_queue_size * sizeof(index_t), ChunkSize_)};
@@ -192,7 +189,6 @@ struct OuroborosPages : OuroborosBase
 		printf("%s", break_line_purple);
 	}
 
-	template <typename DataType>
 	__forceinline__ __device__ void printFreeResources();
 };
 
@@ -207,8 +203,7 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 	using ChunkBase = typename OUROBOROS::ChunkBase;
 	using ChunkType = typename OUROBOROS::ChunkType;
 	using MyType = Ouroboros<OUROBOROS, OUROBOROSES...>;
-	template <typename DataType>
-	using QI = typename ConcreteOuroboros::template QI<DataType>;
+	using QI = typename ConcreteOuroboros::QI;
 
 	static constexpr size_t size_() { return alignment<size_t>(sizeof(Ouroboros<OUROBOROS, OUROBOROSES...>), ChunkBase::size_); };
 
@@ -332,23 +327,17 @@ struct Ouroboros<>
 
 	__forceinline__ __device__ void* malloc(size_t size)
 	{
-		printf("Spill over into Cuda Allocator: %llu\n", AllocationHelper::getNextPow2(size) * sizeof(DataType));
 	#ifdef __CUDA_ARCH__
-		// Allocate from CUDA malloc
-		// if (statistics_enabled)
-		// 	atomicAdd(&stats.cudaMallocCount, 1);
-
 		index.index = std::numeric_limits<decltype(index.index)>::max();
-		auto adjacency = reinterpret_cast<DataType*>(malloc(AllocationHelper::getNextPow2(size) * sizeof(DataType)));
-		if(adjacency == nullptr)
+		void* ptr = malloc(AllocationHelper::getNextPow2(size));
+		if(ptr == nullptr)
 		{
 			if(printDebug)
 			{
 				printf("CUDA Malloc FAILED\n");
 			}
-			// ErrorVal<ErrorType, ErrorCodes::OUT_OF_CUDA_MEMORY>::setError(error);
 		}
-		return adjacency;
+		return ptr;
 	#else
 		return nullptr;
 	#endif
@@ -357,9 +346,7 @@ struct Ouroboros<>
 	__forceinline__ __device__ void freePageRecursive(void* ptr)
 	{
 		printf("Spilled into empty Ouroboros, this should not happend: %u\n", page_size);
-	#ifdef __CUDA_ARCH__
-		free(ptr);
-	#endif
+		__trap();
 	}
 
 	__forceinline__ __device__ void setMemory(Memory* memory){}

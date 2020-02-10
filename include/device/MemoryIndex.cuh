@@ -25,14 +25,12 @@ struct MemoryIndex
 	// ----------------------------------------------------------------------------
 	__device__ __forceinline__ uint32_t getChunkIndex()
 	{
-		const auto temp_index = index;
-		return temp_index >> NumBitsForPage;
+		return index >> NumBitsForPage;
 	}
 	// ----------------------------------------------------------------------------
 	__device__ __forceinline__ uint32_t getPageIndex()
 	{
-		const auto temp_index = index;
-		return temp_index & PageBitMask;
+		return index & PageBitMask;
 	}
 	// ----------------------------------------------------------------------------
 	__device__ __forceinline__ static constexpr uint32_t createIndex(uint32_t chunk_index, uint32_t page_index)

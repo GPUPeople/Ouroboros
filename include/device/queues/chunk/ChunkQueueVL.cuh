@@ -52,8 +52,8 @@ struct ChunkQueueVL
 	template <typename MemoryManagerType>
 	__forceinline__ __device__ bool enqueueInitialChunk(MemoryManagerType* memory_manager, index_t chunk_index, int available_pages, index_t pages_per_chunk);
 
-	template <typename MemoryManagerType, typename DataType>
-	__forceinline__ __device__ DataType* allocPage(MemoryManagerType* memory_manager, MemoryIndex& index);
+	template <typename MemoryManagerType>
+	__forceinline__ __device__ void* allocPage(MemoryManagerType* memory_manager, MemoryIndex& index);
 
 	template <typename MemoryManagerType>
 	__forceinline__ __device__ void freePage(MemoryManagerType* memory_manager, MemoryIndex& index);

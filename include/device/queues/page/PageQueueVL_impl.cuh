@@ -65,7 +65,7 @@ __forceinline__ __device__ bool PageQueueVL<CHUNK_TYPE>::enqueueInitialChunk(Mem
 // ##############################################################################################################################################
 //
 template <typename CHUNK_TYPE>
-template <typename MemoryManagerType, typename DataType>
+template <typename MemoryManagerType>
 __forceinline__ __device__ void* PageQueueVL<CHUNK_TYPE>::allocPage(MemoryManagerType* memory_manager)
 {
 	using ChunkType = typename MemoryManagerType::ChunkType;

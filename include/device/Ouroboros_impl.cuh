@@ -12,6 +12,30 @@
 //
 // ##############################################################################################################################################
 
+// ##############################################################################################################
+// 
+template <template <class /*CHUNK_TYPE*/> class QUEUE_TYPE, typename CHUNK_BASE, unsigned int SMALLEST_SIZE, unsigned int NUMBER_QUEUES>
+__forceinline__ __device__ void* OuroborosChunks<QUEUE_TYPE, CHUNK_BASE, SMALLEST_SIZE, NUMBER_QUEUES>::allocPage(size_t size)
+{
+	if(statistics_enabled)
+		atomicAdd(&stats.pageAllocCount, 1);
+
+	// Allocate from chunks
+	return d_storage_reuse_queue[QI::getQueueIndex(size)].template allocPage<OuroborosChunks<QUEUE_TYPE, CHUNK_BASE, SMALLEST_SIZE, NUMBER_QUEUES>>(this);
+
+}
+
+// ##############################################################################################################
+//
+template <template <class /*CHUNK_TYPE*/> class QUEUE_TYPE, typename CHUNK_BASE, unsigned int SMALLEST_SIZE, unsigned int NUMBER_QUEUES>
+__forceinline__ __device__ void OuroborosChunks<QUEUE_TYPE, CHUNK_BASE, SMALLEST_SIZE, NUMBER_QUEUES>::freePage(MemoryIndex index)
+{
+	if(statistics_enabled)
+		atomicAdd(&stats.pageFreeCount, 1);
+
+	// Deallocate page in chunk
+	d_storage_reuse_queue[QueueType::ChunkType::template getQueueIndexFromPage<QI>(d_data, start_index, index.getChunkIndex())].freePage(this, index);
+}
 
 // ##############################################################################################################################################
 //
@@ -21,6 +45,30 @@
 //
 // ##############################################################################################################################################
 
+// ##############################################################################################################
+// 
+template <template <class /*CHUNK_TYPE*/> class QUEUE_TYPE, typename CHUNK_BASE, unsigned int SMALLEST_SIZE, unsigned int NUMBER_QUEUES>
+__forceinline__ __device__ void* OuroborosPages<QUEUE_TYPE, CHUNK_BASE, SMALLEST_SIZE, NUMBER_QUEUES>::allocPage(size_t size)
+{
+	if(statistics_enabled)
+		atomicAdd(&stats.pageAllocCount, 1);
+
+	// Allocate from pages
+	return d_storage_reuse_queue[QI::getQueueIndex(size)].template allocPage<OuroborosPages<QUEUE_TYPE, CHUNK_BASE, SMALLEST_SIZE, NUMBER_QUEUES>>(this);
+
+}
+
+// ##############################################################################################################
+//
+template <template <class /*CHUNK_TYPE*/> class QUEUE_TYPE, typename CHUNK_BASE, unsigned int SMALLEST_SIZE, unsigned int NUMBER_QUEUES>
+__forceinline__ __device__ void OuroborosPages<QUEUE_TYPE, CHUNK_BASE, SMALLEST_SIZE, NUMBER_QUEUES>::freePage(MemoryIndex index)
+{
+	if(statistics_enabled)
+		atomicAdd(&stats.pageFreeCount, 1);
+
+	// Deallocate page in chunk
+	d_storage_reuse_queue[QueueType::ChunkType::template getQueueIndexFromPage<QI>(d_data, start_index, index.getChunkIndex())].freePage(this, index);
+}
 
 // ##############################################################################################################################################
 //
@@ -39,7 +87,7 @@ __forceinline__ __device__ void* Ouroboros<OUROBOROS, OUROBOROSES...>::malloc(si
 	{
 		return memory_manager.allocPage(size);
 	}
-	return next_memory_manager.malloc(size, index);
+	return next_memory_manager.malloc(size);
 }
 
 // ##############################################################################################################################################
@@ -105,6 +153,8 @@ void updateMemoryManagerDevice(MemoryManagerType& memory_manager)
 		cudaMemcpyHostToDevice));
 }
 
+// ##############################################################################################################################################
+//
 template<class OUROBOROS, class... OUROBOROSES>
 Ouroboros<OUROBOROS, OUROBOROSES...>::~Ouroboros()
 {
