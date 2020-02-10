@@ -29,7 +29,7 @@ static constexpr int NUM_BITS_FOR_PAGE{ Ouro::countBitShift(CHUNK_SIZE / SMALLES
 
 // Print & Statistics
 static constexpr bool turn_off_all_print_output{false};
-static constexpr bool turn_off_all_metric{ turn_off_all_print_output || true };
+static constexpr bool turn_off_all_metric{ turn_off_all_print_output || false };
 static constexpr bool fragmentation_print{false};
 
 static constexpr bool debug_enabled{ !turn_off_all_metric && true };

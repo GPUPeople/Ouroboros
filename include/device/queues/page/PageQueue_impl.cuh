@@ -25,7 +25,7 @@ __forceinline__ __device__ bool PageQueue<ChunkType>::enqueue(index_t chunk_inde
 	{
 		//we have to wait in case there is still something in the spot
 		// note: as the filllevel could be increased by this thread, we are certain that the spot will become available
-		unsigned int pos = modPower2<size_>(atomicAdd(&back_, 1));
+		unsigned int pos = Ouro::modPower2<size_>(atomicAdd(&back_, 1));
 		while (atomicCAS(queue_ + pos, DeletionMarker<index_t>::val, chunk_index) != DeletionMarker<index_t>::val)
 			Ouro::sleep();
 		return true;
@@ -60,7 +60,7 @@ __forceinline__ __device__ bool PageQueue<ChunkType>::enqueueChunk(index_t chunk
 	{
 		//we have to wait in case there is still something in the spot
 		// note: as the filllevel could be increased by this thread, we are certain that the spot will become available
-		unsigned int pos = modPower2<size_>(atomicAdd(&back_, pages_per_chunk));
+		unsigned int pos = Ouro::modPower2<size_>(atomicAdd(&back_, pages_per_chunk));
 		for(auto i = 0; i < pages_per_chunk; ++i)
 		{
 			index_t index = MemoryIndex::createIndex(chunk_index, i);
@@ -69,7 +69,7 @@ __forceinline__ __device__ bool PageQueue<ChunkType>::enqueueChunk(index_t chunk
 				Ouro::sleep();
 			}
 				
-			pos = modPower2<size_>(++pos);
+			pos = Ouro::modPower2<size_>(++pos);
 		}
 		return true;
 	}
@@ -83,7 +83,7 @@ template <typename ChunkType>
 __forceinline__ __device__ void PageQueue<ChunkType>::dequeue(MemoryIndex& index)
 {
 	// Dequeue from queue
-	unsigned int pos = modPower2<size_>(atomicAdd(&front_, 1));
+	unsigned int pos = Ouro::modPower2<size_>(atomicAdd(&front_, 1));
 	auto counter {0U};
 	while ((index.index = atomicExch(queue_ + pos, DeletionMarker<index_t>::val)) == DeletionMarker<index_t>::val)
 	{
@@ -92,7 +92,7 @@ __forceinline__ __device__ void PageQueue<ChunkType>::dequeue(MemoryIndex& index
 		// {
 		// 	int count, reserved,expected;
 		// 	semaphore.getValues(count, reserved, expected);
-		// 	printf("%d - %d - %d We died in PageQueue::dequeue waiting on a value! :( pos: %u | %d - %d - %d\n", blockIdx.x, threadIdx.x, lane_id(), pos, count, reserved, expected);
+		// 	printf("%d - %d - %d We died in PageQueue::dequeue waiting on a value! :( pos: %u | %d - %d - %d\n", blockIdx.x, threadIdx.x, Ouro::lane_id(), pos, count, reserved, expected);
 		// 	__trap();
 		// }
 	}

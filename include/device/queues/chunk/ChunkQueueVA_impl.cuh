@@ -94,12 +94,12 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 		enqueueChunk(memory_manager, chunk_index, pages_per_chunk);
 	});
 
-	unsigned int virtual_pos = ldg_cg(&front_);
+	unsigned int virtual_pos = Ouro::ldg_cg(&front_);
 	while (true)
 	{
 		auto chunk_id = computeChunkID(virtual_pos);
 		auto queue_chunk = accessQueueElement(memory_manager, chunk_id, virtual_pos);
-		queue_chunk->access(modPower2<QueueChunkType::num_spots_>(virtual_pos), chunk_index);
+		queue_chunk->access(Ouro::modPower2<QueueChunkType::num_spots_>(virtual_pos), chunk_index);
 		if (chunk_index != DeletionMarker<index_t>::val)
 		{
 			chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, chunk_index);
@@ -138,7 +138,7 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 					atomicSub(&count_, 1);
 
 					// We moved the front pointer
-					if(queue_chunk->deleteElement(modPower2<QueueChunkType::num_spots_>(virtual_pos)))
+					if(queue_chunk->deleteElement(Ouro::modPower2<QueueChunkType::num_spots_>(virtual_pos)))
 					{
 						// We can remove this chunk
 						index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
@@ -157,7 +157,7 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 		// Error Checking
 		if (!FINAL_RELEASE)
 		{
-			if (virtual_pos > ldg_cg(&back_))
+			if (virtual_pos > Ouro::ldg_cg(&back_))
 			{
 				if (!FINAL_RELEASE)
 					printf("ThreadIDx: %d BlockIdx: %d - We done fucked up! Front: %u Back: %u : Count: %d\n", threadIdx.x, blockIdx.x, virtual_pos, back_, count_);
@@ -256,7 +256,7 @@ __forceinline__ __device__ QueueChunk<typename CHUNK_TYPE::Base>* ChunkQueueVA<C
 {
 	index_t queue_chunk_index{0};
 	// We may have to wait until the first thread on this chunk has initialized it!
-	while((queue_chunk_index = ldg_cg(&queue_[chunk_id])) == DeletionMarker<index_t>::val) 
+	while((queue_chunk_index = Ouro::ldg_cg(&queue_[chunk_id])) == DeletionMarker<index_t>::val) 
 	{
 		Ouro::sleep();
 	}

@@ -26,7 +26,7 @@ struct ChunkQueue
 	// Static Members
 	static constexpr bool virtualized{false};
 	static constexpr int size_{ page_queue_size };
-	static_assert(isPowerOfTwo(size_), "Chunk Queue size is not Power of 2!");
+	static_assert(Ouro::isPowerOfTwo(size_), "Chunk Queue size is not Power of 2!");
 	static constexpr int lower_fill_level{static_cast<int>(static_cast<float>(size_) * LOWER_FILL_LEVEL_PERCENTAGE)};
 
 	// Methods

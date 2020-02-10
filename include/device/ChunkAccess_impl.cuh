@@ -68,7 +68,7 @@ __forceinline__ __device__ ChunkAccess<SIZE, SMALLEST_PAGE>::Mode ChunkAccess<SI
 	int least_significant_bit{ 0 };
 
 	// Offset in the range of 0-63
-	const int offset = (threadIdx.x + blockIdx.x) % sizeofInBits<uint64_t>();
+	const int offset = (threadIdx.x + blockIdx.x) % Ouro::sizeofInBits<uint64_t>();
 	
 	int bitmask_index = (threadIdx.x) % MaximumBitMaskSize_;
 
@@ -85,15 +85,15 @@ __forceinline__ __device__ ChunkAccess<SIZE, SMALLEST_PAGE>::Mode ChunkAccess<SI
 		// This way we can still use the build in __ffsll but will still start our search at different 
 		// positions
 		// Load mask -> shift by offset to the right and then append whatever was shifted out at the top
-		auto current_mask = ldg_cg(&availability_mask[(++bitmask_index) % MaximumBitMaskSize_]);
+		auto current_mask = Ouro::ldg_cg(&availability_mask[(++bitmask_index) % MaximumBitMaskSize_]);
 		auto without_lower_part = current_mask >> offset;
-		auto final_mask = without_lower_part | (current_mask << (sizeofInBits<uint64_t>() - offset));
+		auto final_mask = without_lower_part | (current_mask << (Ouro::sizeofInBits<uint64_t>() - offset));
 
 		while(least_significant_bit = __ffsll(final_mask))
 		{
 			--least_significant_bit; // Get actual bit position (as bit 0 return 1)
-			least_significant_bit = ((least_significant_bit + offset) % sizeofInBits<uint64_t>()); // Correct for shift
-			page_index = sizeofInBits<uint64_t>() * (bitmask_index % MaximumBitMaskSize_) // which mask
+			least_significant_bit = ((least_significant_bit + offset) % Ouro::sizeofInBits<uint64_t>()); // Correct for shift
+			page_index = Ouro::sizeofInBits<uint64_t>() * (bitmask_index % MaximumBitMaskSize_) // which mask
 				+ least_significant_bit; // which page on mask
 
 			// Please do NOT reorder here
@@ -111,7 +111,7 @@ __forceinline__ __device__ ChunkAccess<SIZE, SMALLEST_PAGE>::Mode ChunkAccess<SI
 				return mode;
 			}
 			without_lower_part = current_mask >> offset;
-			final_mask = without_lower_part | (current_mask << (sizeofInBits<uint64_t>() - offset));
+			final_mask = without_lower_part | (current_mask << (Ouro::sizeofInBits<uint64_t>() - offset));
 		}
 	}
 

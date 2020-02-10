@@ -21,9 +21,9 @@ struct AllocationHelper
 	static constexpr int static_getNextPow2Pow()
 	{
 		if ((n & (n - 1)) == 0)
-			return 32 - static_clz<n>::value - 1;
+			return 32 - Ouro::static_clz<n>::value - 1;
 		else
-			return 32 - static_clz<n>::value;
+			return 32 - Ouro::static_clz<n>::value;
 	}
 
 	template <typename T, T n>

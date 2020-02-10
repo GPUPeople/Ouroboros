@@ -41,7 +41,7 @@ public:
 
 	__forceinline__ __device__ void read(BulkSemaphore& semaphore)
 	{
-		semaphore.value = ldg_cg(&value);
+		semaphore.value = Ouro::ldg_cg(&value);
 	}
 
 	// ################################################################################################################

@@ -27,7 +27,7 @@ __forceinline__ __device__ bool ChunkQueue<ChunkType>::enqueue(index_t chunk_ind
 	{
 		// we have to wait in case there is still something in the spot
 		// note: as the filllevel could be increased by this thread, we are certain that the spot will become available
-		unsigned int pos = modPower2<size_>(atomicAdd(&back_, 1));
+		unsigned int pos = Ouro::modPower2<size_>(atomicAdd(&back_, 1));
 
 		if(chunk)
 			chunk->queue_pos = pos;
@@ -100,10 +100,10 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 	 	enqueueChunk(chunk_index, pages_per_chunk, chunk);
 	});
 
-	auto current_front = ldg_cg(&front_);
+	auto current_front = Ouro::ldg_cg(&front_);
 	while(true)
 	{
-		chunk_index = ldg_cg(&queue_[modPower2<size_>(current_front)]);
+		chunk_index = Ouro::ldg_cg(&queue_[Ouro::modPower2<size_>(current_front)]);
 		if(chunk_index != DeletionMarker<index_t>::val)
 		{
 			chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, chunk_index);
@@ -121,9 +121,9 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 			{
 				// while(atomicCAS(&front_, current_front, current_front + 1) == current_front)
 				// {
-				// 	atomicExch(&queue_[modPower2<size_>(current_front)], DeletionMarker<index_t>::val);
+				// 	atomicExch(&queue_[Ouro::modPower2<size_>(current_front)], DeletionMarker<index_t>::val);
 				// 	atomicSub(&count_, 1);
-				// 	chunk_index = ldg_cg(&queue_[modPower2<size_>(++current_front)]);
+				// 	chunk_index = Ouro::ldg_cg(&queue_[Ouro::modPower2<size_>(++current_front)]);
 				// 	if(chunk_index != DeletionMarker<index_t>::val)
 				// 	{
 				// 		chunk = Chunk::getAccess(memory_manager->d_data, memory_manager->start_index, chunk_index);
@@ -140,7 +140,7 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 
 				// We moved the front pointer
 				atomicMax(&front_, current_front + 1);
-				atomicExch(&queue_[modPower2<size_>(current_front)], DeletionMarker<index_t>::val);
+				atomicExch(&queue_[Ouro::modPower2<size_>(current_front)], DeletionMarker<index_t>::val);
 				atomicSub(&count_, 1);
 				
 
@@ -155,7 +155,7 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 		// Error Checking
 		if (!FINAL_RELEASE)
 		{
-			if (current_front > ldg_cg(&back_))
+			if (current_front > Ouro::ldg_cg(&back_))
 			{
 				printf("ThreadIDx: %d BlockIdx: %d - We done fucked up! Front: %u Back: %u : Count: %d\n", threadIdx.x, blockIdx.x, current_front, back_, count_);
 				__trap();
@@ -182,7 +182,7 @@ __forceinline__ __device__ void ChunkQueue<ChunkType>::freePage(MemoryManagerTyp
 		enqueue(chunk_index, chunk);
 	}
 	// TODO: This is NOT guaranteed to work as intended as signal happens after free
-	else if(mode == ChunkType::ChunkAccessType::FreeMode::DEQUEUE && ldg_cg(&count_) > lower_fill_level)
+	else if(mode == ChunkType::ChunkAccessType::FreeMode::DEQUEUE && Ouro::ldg_cg(&count_) > lower_fill_level)
 	{
 		auto num_pages_per_chunk{chunk->access.size};
 

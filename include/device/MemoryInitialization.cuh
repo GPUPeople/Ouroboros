@@ -127,11 +127,11 @@ void Ouroboros<OUROBOROS, OUROBOROSES...>::initialize(size_t additionalSizeBegin
 	auto total_memory_manager_size = totalMemoryManagerSize();
 
 	// Align both the required size and total size to the chunk base size
-	auto total_required_size = alignment<size_t>(size_() + total_memory_manager_size + additionalSizeBeginning + additionalSizeEnd, ChunkBase::size());
-	auto difference = alignment<size_t>(ALLOCATION_SIZE, ChunkBase::size()) - total_required_size;
+	auto total_required_size = Ouro::alignment<size_t>(size_() + total_memory_manager_size + additionalSizeBeginning + additionalSizeEnd, ChunkBase::size());
+	auto difference = Ouro::alignment<size_t>(ALLOCATION_SIZE, ChunkBase::size()) - total_required_size;
 	memory.maxChunks = difference / ChunkBase::size();
-	memory.adjacencysize = alignment<uint64_t>(memory.maxChunks * ChunkBase::size());
-	memory.allocationSize = alignment<uint64_t>(total_required_size + memory.adjacencysize, ChunkBase::size());
+	memory.adjacencysize = Ouro::alignment<uint64_t>(memory.maxChunks * ChunkBase::size());
+	memory.allocationSize = Ouro::alignment<uint64_t>(total_required_size + memory.adjacencysize, ChunkBase::size());
 	memory.start_index = memory.maxChunks - 1;
 	memory.additionalSizeBeginning = additionalSizeBeginning;
 	memory.additionalSizeEnd = additionalSizeEnd;

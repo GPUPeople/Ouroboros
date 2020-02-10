@@ -82,7 +82,7 @@ __forceinline__ __device__ void* ChunkQueueVL<CHUNK_TYPE>::allocPage(MemoryManag
 
 	__threadfence_block();
 
-	unsigned int virtual_pos = ldg_cg(&front_);
+	unsigned int virtual_pos = Ouro::ldg_cg(&front_);
 	while(true)
 	{
 		front_ptr_->accessLinked(virtual_pos, chunk_index);
@@ -122,7 +122,7 @@ __forceinline__ __device__ void* ChunkQueueVL<CHUNK_TYPE>::allocPage(MemoryManag
 		// Error Checking
 		if (!FINAL_RELEASE)
 		{
-			if (virtual_pos > ldg_cg(&back_))
+			if (virtual_pos > Ouro::ldg_cg(&back_))
 			{
 				if (!FINAL_RELEASE)
 					printf("ThreadIDx: %d BlockIdx: %d - Front: %u Back: %u - ChunkIndex: %u\n", threadIdx.x, blockIdx.x, virtual_pos, back_, chunk_index);

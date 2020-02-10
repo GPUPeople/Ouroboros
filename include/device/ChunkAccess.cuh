@@ -34,15 +34,15 @@ struct ChunkAccess
 		#pragma unroll
 		for (auto i = 0; i < MaximumBitMaskSize_; ++i)
 		{
-			if(taken_pages >= sizeofInBits<uint64_t>()) 
+			if(taken_pages >= Ouro::sizeofInBits<uint64_t>()) 
 			{
 				availability_mask[i] = 0ULL;
-				taken_pages -= sizeofInBits<uint64_t>();
+				taken_pages -= Ouro::sizeofInBits<uint64_t>();
 			}
 			else
 			{
 				// Set the rest of the bits (set the next greater bit for taken pages, -1 gives bitmask with 1 for taken pages, invert that
-				if(number_pages >= sizeofInBits<uint64_t>())
+				if(number_pages >= Ouro::sizeofInBits<uint64_t>())
 				{
 					availability_mask[i] = ~((1ULL << (taken_pages)) - 1);
 				}
@@ -54,9 +54,9 @@ struct ChunkAccess
 				taken_pages = 0;
 			}
 
-			if(number_pages > sizeofInBits<uint64_t>())
+			if(number_pages > Ouro::sizeofInBits<uint64_t>())
 			{
-				number_pages -= sizeofInBits<uint64_t>();
+				number_pages -= Ouro::sizeofInBits<uint64_t>();
 			}
 			else
 			{
@@ -72,7 +72,7 @@ struct ChunkAccess
 		for (auto i = 0; i < MaximumBitMaskSize_; ++i)
 		{
 			// Set the rest of the bits (set the next greater bit for taken pages, -1 gives bitmask with 1 for taken pages, invert that
-			if(number_pages >= sizeofInBits<uint64_t>())
+			if(number_pages >= Ouro::sizeofInBits<uint64_t>())
 			{
 				// All bits set
 				availability_mask[i] = ~0ULL;
@@ -83,7 +83,7 @@ struct ChunkAccess
 				availability_mask[i] = (1ULL << number_pages) - 1;
 			}
 
-			number_pages = (number_pages > sizeofInBits<uint64_t>()) ? (number_pages - sizeofInBits<uint64_t>()) : 0;
+			number_pages = (number_pages > Ouro::sizeofInBits<uint64_t>()) ? (number_pages - Ouro::sizeofInBits<uint64_t>()) : 0;
 		}
 	}
 

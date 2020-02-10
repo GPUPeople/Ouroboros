@@ -109,7 +109,7 @@ struct QueueChunk : public CommonChunk
 	// 
 	__forceinline__ __device__ void access(const unsigned int position, QueueDataType& element)
 	{ 
-		element = ldg_cg(&queue_[position]); 
+		element = Ouro::ldg_cg(&queue_[position]); 
 	}
 
 	// ##############################################################################################################################################
@@ -120,7 +120,7 @@ struct QueueChunk : public CommonChunk
 	// 
 	__forceinline__ __device__ bool checkVirtualStart(const unsigned int v_position) 
 	{ 
-		return (ldg_cg(&virtual_start_) / num_spots_) == (v_position / num_spots_);
+		return (Ouro::ldg_cg(&virtual_start_) / num_spots_) == (v_position / num_spots_);
 	}
 
 	// ##############################################################################################################################################
@@ -217,7 +217,7 @@ struct QueueChunk : public CommonChunk
 	// 
 	static __forceinline__ __device__ __host__ QueueChunk* initializeChunk(memory_t* memory, uint64_t start_index, index_t chunk_index, unsigned int virtual_start)
 	{
-		static_assert(alignment(sizeof(QueueChunk)) <= CHUNK_METADATA_SIZE, "QueueChunk is larger than alignment!");
+		static_assert(Ouro::alignment(sizeof(QueueChunk)) <= CHUNK_METADATA_SIZE, "QueueChunk is larger than alignment!");
 		return new(reinterpret_cast<char*>(getAccess(memory, start_index, chunk_index))) QueueChunk(getData(memory, start_index, chunk_index), chunk_index, virtual_start);
 	}
 };

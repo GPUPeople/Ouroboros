@@ -73,7 +73,7 @@ struct PageChunk : public CommonChunk
 	// Initializer
 	static __forceinline__ __device__ __host__ PageChunk* initializeChunk(memory_t* memory, uint64_t start_index, index_t chunk_index, uint32_t number_pages)
 	{
-		static_assert(alignment(sizeof(PageChunk)) <= meta_data_size_, "PageChunk is larger than alignment!");
+		static_assert(Ouro::alignment(sizeof(PageChunk)) <= meta_data_size_, "PageChunk is larger than alignment!");
 		return new(reinterpret_cast<char*>(getAccess(memory, start_index, chunk_index))) PageChunk((size_ / number_pages), number_pages);
 	}
 
@@ -81,7 +81,7 @@ struct PageChunk : public CommonChunk
 	// Initializer
 	static __forceinline__ __device__ __host__ PageChunk* initializeChunk(memory_t* memory, uint64_t start_index, index_t chunk_index, const int available_pages, uint32_t number_pages)
 	{
-		static_assert(alignment(sizeof(PageChunk)) <= meta_data_size_, "PageChunk is larger than alignment!");
+		static_assert(Ouro::alignment(sizeof(PageChunk)) <= meta_data_size_, "PageChunk is larger than alignment!");
 		return new(Base::getMemoryAccess<memory_t>(memory, start_index, chunk_index)) PageChunk((size_ / number_pages), number_pages);
 	}
 };

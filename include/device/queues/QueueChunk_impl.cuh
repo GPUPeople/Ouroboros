@@ -48,7 +48,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::guaranteeWarpSyncPerChunk
 				unsigned long long next {DeletionMarker<unsigned long long>::val};
 				unsigned int counter{0};
 				// Next might not be set yet, in this case we have to wait
-				while((next = ldg_cg(&chunk_ptr->next_)) == DeletionMarker<unsigned long long>::val)
+				while((next = Ouro::ldg_cg(&chunk_ptr->next_)) == DeletionMarker<unsigned long long>::val)
 				{
 					if(counter++ > (1000*1000*10))
 					{
@@ -127,7 +127,7 @@ __forceinline__ __device__ unsigned int QueueChunk<ChunkBase>::enqueueLinkedv4(c
 		MemoryIndex::createIndex(chunk_index, start_index + 2),
 		MemoryIndex::createIndex(chunk_index, start_index + 3)
 	};
-	store(reinterpret_cast<uint4*>(queue_ + position), indices);
+	Ouro::store(reinterpret_cast<uint4*>(queue_ + position), indices);
 	return atomicAdd(&count_, countAddValueEnqueue<4>());
 }
 
@@ -140,7 +140,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueue(MemoryManagerType
 	guaranteeWarpSyncPerChunk(position, "Enqueue", [&](QueueChunk<ChunkBase>* chunk_ptr)
 	{
 		// We found the right chunk
-		const auto local_position = (modPower2<num_spots_>(position));
+		const auto local_position = (Ouro::modPower2<num_spots_>(position));
 		if(local_position == 0)
 		{
 			// We pre-emptively allocate the next chunk already
@@ -194,7 +194,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueueChunk(MemoryManage
 		// First check if we have to allocate an additional queue chunk at this point?
 		QueueChunk<ChunkBase>* potential_next{nullptr};
 		unsigned int queue_chunk_index{ 0 };
-		auto local_position = (modPower2<num_spots_>(position));
+		auto local_position = (Ouro::modPower2<num_spots_>(position));
 		if(local_position == 0 || ((local_position + pages_per_chunk) > num_spots_))
 		{
 			// In this case we are either directly the first on a chunk or we will wrap onto the new chunk and then be first
@@ -213,7 +213,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueueChunk(MemoryManage
 
 		//Mode mode {Mode::SINGLE};
 		index_t current_index_offset = 0;
-		Mode mode {((modPower2<vector_width>(local_position) == 0) && (pages_per_chunk >= vector_width)) ? Mode::V4 : Mode::SINGLE};
+		Mode mode {((Ouro::modPower2<vector_width>(local_position) == 0) && (pages_per_chunk >= vector_width)) ? Mode::V4 : Mode::SINGLE};
 
 		// Now we want to insert pages_per_chunk into our queue
 		while(current_index_offset < pages_per_chunk)
@@ -277,7 +277,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueueChunk(MemoryManage
 				unsigned long long next {DeletionMarker<unsigned long long>::val};
 				unsigned int counter{0};
 				// Next might not be set yet, in this case we have to wait
-				while((next = ldg_cg(&chunk_ptr->next_)) == DeletionMarker<unsigned long long>::val)
+				while((next = Ouro::ldg_cg(&chunk_ptr->next_)) == DeletionMarker<unsigned long long>::val)
 				{
 					if(counter++ > (1000*1000*10))
 					{
@@ -304,7 +304,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueueChunk(MemoryManage
 			// Compute mode for next round
 			if(mode == Mode::SINGLE)
 			{
-				if((modPower2<vector_width>(local_position) == 0) && ((pages_per_chunk - current_index_offset) >= vector_width))
+				if((Ouro::modPower2<vector_width>(local_position) == 0) && ((pages_per_chunk - current_index_offset) >= vector_width))
 					mode = Mode::V4;
 			}
 			else
@@ -364,7 +364,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::dequeue(MemoryManagerType
 {
 	guaranteeWarpSyncPerChunk(position, "Dequeue", [&](QueueChunk<ChunkBase>* chunk_ptr)
 	{
-		const auto local_position = (modPower2<num_spots_>(position));
+		const auto local_position = (Ouro::modPower2<num_spots_>(position));
 		if(Mode == DEQUEUE_MODE::DEQUEUE ? chunk_ptr->dequeue(local_position, element, memory_manager, queue_front_ptr) : chunk_ptr->deleteElement(local_position))
 		{
 			// We can remove this chunk
@@ -393,7 +393,7 @@ __forceinline__ __device__ QueueChunk<ChunkBase>* QueueChunk<ChunkBase>::locateQ
 		unsigned long long next {DeletionMarker<unsigned long long>::val};
 		unsigned int counter{0};
 		// Next might not be set yet, in this case we have to wait
-		while((next = ldg_cg(&chunk_ptr->next_)) == DeletionMarker<unsigned long long>::val)
+		while((next = Ouro::ldg_cg(&chunk_ptr->next_)) == DeletionMarker<unsigned long long>::val)
 		{
 			if(counter++ > (1000*1000*10))
 			{
@@ -420,7 +420,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::accessLinked(const unsign
 {
 	// Traverse to correct chunk and then access queue_ at correct position
 	QueueChunk<ChunkBase>* current_chunk{locateQueueChunkForPosition(position, "ACCESSLINKED")};
-	element = ldg_cg(&(current_chunk->queue_[modPower2<num_spots_>(position)]));
+	element = Ouro::ldg_cg(&(current_chunk->queue_[Ouro::modPower2<num_spots_>(position)]));
 }
 
 // ##############################################################################################################################################
@@ -431,19 +431,19 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::setBackPointer(QueueChunk
 	// INFO: setNextPointer is only called, if all spots on this chunk called their enqueue, at which point next_ must have been set already
 	QueueChunk<ChunkBase>* chunk_ptr{this};
 	// Try to set back pointer with current chunks next pointer, continue in loop if successful!
-	while(atomicCAS((reinterpret_cast<unsigned long long*>(queue_next_ptr)), reinterpret_cast<unsigned long long>(chunk_ptr), ldg_cg(&chunk_ptr->next_)) 
+	while(atomicCAS((reinterpret_cast<unsigned long long*>(queue_next_ptr)), reinterpret_cast<unsigned long long>(chunk_ptr), Ouro::ldg_cg(&chunk_ptr->next_)) 
 		== reinterpret_cast<unsigned long long>(chunk_ptr))
 	{
 		if(printDebug)
 			printf("%d : %d Moved backpointer from virtual start: %u to %u\n", threadIdx.x, blockIdx.x, chunk_ptr->virtual_start_, reinterpret_cast<QueueChunk<ChunkBase>*>(chunk_ptr->next_)->virtual_start_);
 		// Read the count of the next chunk in line, check if counterA is already full as well
-		auto current_count_A = extractCounterA(ldg_cg(&reinterpret_cast<QueueChunk<ChunkBase>*>(chunk_ptr->next_)->count_));
+		auto current_count_A = extractCounterA(Ouro::ldg_cg(&reinterpret_cast<QueueChunk<ChunkBase>*>(chunk_ptr->next_)->count_));
 		// If counterA is full, we want to try to continue advancing the back pointer, since multiple chunks might be full at the same time
 		// In this case we still want to move our pointer over all, if not we can break here
 		if(current_count_A == num_spots_)
 		{
 			// Set pointer to next pointer
-			chunk_ptr = reinterpret_cast<QueueChunk<ChunkBase>*>(ldg_cg(&chunk_ptr->next_));
+			chunk_ptr = reinterpret_cast<QueueChunk<ChunkBase>*>(Ouro::ldg_cg(&chunk_ptr->next_));
 		}
 		else
 			break;
@@ -459,15 +459,15 @@ __forceinline__ __device__ unsigned int QueueChunk<ChunkBase>::setFrontPointer(Q
 	QueueChunk<ChunkBase>* chunk_ptr{this};
 	unsigned int ret_val{0};
 	// Try to set front pointer with current chunks next pointer, continue in loop if successfull
-	while(atomicCAS((reinterpret_cast<unsigned long long*>(queue_front_ptr)), reinterpret_cast<unsigned long long>(chunk_ptr), ldg_cg(&chunk_ptr->next_)) 
+	while(atomicCAS((reinterpret_cast<unsigned long long*>(queue_front_ptr)), reinterpret_cast<unsigned long long>(chunk_ptr), Ouro::ldg_cg(&chunk_ptr->next_)) 
 		== reinterpret_cast<unsigned long long>(chunk_ptr))
 	{
 		++ret_val;
 
 		// We check if the count of the next chunk is equal to num_spots (counterA = num_spots & counterB = 0) -> this chunk is empty as well
-		if(ldg_cg(&reinterpret_cast<QueueChunk<ChunkBase>*>(ldg_cg(&chunk_ptr->next_))->count_) == static_cast<unsigned long long>(num_spots_))
+		if(Ouro::ldg_cg(&reinterpret_cast<QueueChunk<ChunkBase>*>(Ouro::ldg_cg(&chunk_ptr->next_))->count_) == static_cast<unsigned long long>(num_spots_))
 		{
-			chunk_ptr = reinterpret_cast<QueueChunk<ChunkBase>*>(ldg_cg(&chunk_ptr->next_));
+			chunk_ptr = reinterpret_cast<QueueChunk<ChunkBase>*>(Ouro::ldg_cg(&chunk_ptr->next_));
 		}
 		else
 			break;
@@ -485,7 +485,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::setOldPointer(MemoryManag
 {
 	using ChunkType = typename MemoryManagerType::ChunkType;
 	// Read current old count
-	auto current_old_count = ldg_cg(old_count);
+	auto current_old_count = Ouro::ldg_cg(old_count);
 
 	// This branch is only taken about "LARGEST_OLD_COUNT_VALUE" times, if old_count is larger we already know how much to free up
 	if(current_old_count < LARGEST_OLD_COUNT_VALUE)
@@ -517,7 +517,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::setOldPointer(MemoryManag
 	// Free up some old chunks
 	if(free_count)
 	{
-		QueueChunk<ChunkBase>* current_old_ptr{reinterpret_cast<QueueChunk<ChunkBase>*>(ldg_cg(reinterpret_cast<unsigned long long*>(queue_old_ptr)))};
+		QueueChunk<ChunkBase>* current_old_ptr{reinterpret_cast<QueueChunk<ChunkBase>*>(Ouro::ldg_cg(reinterpret_cast<unsigned long long*>(queue_old_ptr)))};
 		while(free_count > 0)
 		{
 			auto current_old_ptr_comp = current_old_ptr;

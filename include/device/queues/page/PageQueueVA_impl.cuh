@@ -37,7 +37,7 @@ __forceinline__ __device__ bool PageQueueVA<CHUNK_TYPE>::enqueueChunk(MemoryMana
 	{
 		unsigned int virtual_pos = atomicAdd(&back_, pages_per_chunk);
 		unsigned int chunk_id = computeChunkID(virtual_pos);
-		auto position = modPower2<QueueChunkType::num_spots_>(virtual_pos);
+		auto position = Ouro::modPower2<QueueChunkType::num_spots_>(virtual_pos);
 
 		// Do we have to allocate a new pre-emptive chunk
 		if((position + pages_per_chunk > QueueChunkType::num_spots_) || (position == 0))
@@ -50,7 +50,7 @@ __forceinline__ __device__ bool PageQueueVA<CHUNK_TYPE>::enqueueChunk(MemoryMana
 			// Please do not re-order here
 			__threadfence_block();
 
-			atomicExch(&queue_[modPower2<size_>(position != 0 ? (chunk_id + 2) : (chunk_id + 1))], new_queue_index);
+			atomicExch(&queue_[Ouro::modPower2<size_>(position != 0 ? (chunk_id + 2) : (chunk_id + 1))], new_queue_index);
 		}
 
 		__threadfence_block();
@@ -226,7 +226,7 @@ __forceinline__ __device__ QueueChunk<typename CHUNK_TYPE::Base>* PageQueueVA<CH
 	index_t queue_chunk_index{0};
 	// We may have to wait until the first thread on this chunk has initialized it!
 	unsigned int counter{0U};
-	while((queue_chunk_index = ldg_cg(&queue_[chunk_id])) == DeletionMarker<index_t>::val) 
+	while((queue_chunk_index = Ouro::ldg_cg(&queue_[chunk_id])) == DeletionMarker<index_t>::val) 
 	{
 		Ouro::sleep(counter++);
 	}

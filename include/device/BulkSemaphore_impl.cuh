@@ -45,7 +45,7 @@ __forceinline__ __device__ void BulkSemaphore::wait(int N, uint32_t number_pages
 		int expected, reserved, count;
 		
 		// Read from global
-		BulkSemaphore new_semaphore_value{ ldg_cg(&value) };
+		BulkSemaphore new_semaphore_value{ Ouro::ldg_cg(&value) };
 		do
 		{
 			old_semaphore_value = new_semaphore_value;
@@ -124,8 +124,8 @@ __forceinline__ __device__ void BulkSemaphore::wait(int N, uint32_t number_pages
     int mask = __match_any_sync(__activemask(), number_pages_on_chunk);
 	int leader = __ffs(mask) - 1; // Select leader
 		
-	// int leader_mask = __match_any_sync(__activemask(), lane_id() == leader);
-	if(lane_id() == leader)
+	// int leader_mask = __match_any_sync(__activemask(), Ouro::lane_id() == leader);
+	if(Ouro::lane_id() == leader)
 	{
 		int num = __popc(mask) * N; // How much should our allocator allocate?
 		while(true)
@@ -147,7 +147,7 @@ __forceinline__ __device__ void BulkSemaphore::wait(int N, uint32_t number_pages
 			BulkSemaphore old_semaphore_value;
 			int expected, reserved, count;
 			// Read from global
-			BulkSemaphore new_semaphore_value{ ldg_cg(&value) };
+			BulkSemaphore new_semaphore_value{ Ouro::ldg_cg(&value) };
 			do
 			{
 				old_semaphore_value = new_semaphore_value;

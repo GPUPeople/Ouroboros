@@ -70,9 +70,9 @@ struct OuroborosChunks : OuroborosBase
 	using QueueType = QUEUE_TYPE<ChunkType>;
 	using QI = QueueIndex<SmallestPageSize_, ChunkSize_>;
 
-	static constexpr size_t memory_manager_size_() { return alignment<uint64_t>(sizeof(OuroborosChunks)); };
-	static constexpr size_t chunk_queue_size_{alignment<uint64_t>(chunk_queue_size * sizeof(index_t))};
-	static constexpr size_t page_queue_size_{alignment<uint64_t>(QueueType::size_ * sizeof(MemoryIndex))};
+	static constexpr size_t memory_manager_size_() { return Ouro::alignment<uint64_t>(sizeof(OuroborosChunks)); };
+	static constexpr size_t chunk_queue_size_{Ouro::alignment<uint64_t>(chunk_queue_size * sizeof(index_t))};
+	static constexpr size_t page_queue_size_{Ouro::alignment<uint64_t>(QueueType::size_ * sizeof(MemoryIndex))};
 
 	QueueType d_storage_reuse_queue[NumberQueues_];
 
@@ -138,9 +138,9 @@ struct OuroborosPages : OuroborosBase
 	using QueueType = QUEUE_TYPE<ChunkType>;
 	using QI = QueueIndex<SmallestPageSize_, ChunkSize_>;
 
-	static constexpr size_t memory_manager_size_() { return alignment<uint64_t>(sizeof(OuroborosPages)); };
-	static constexpr size_t chunk_queue_size_{alignment<uint64_t>(chunk_queue_size * sizeof(index_t), ChunkSize_)};
-	static constexpr size_t page_queue_size_{alignment<uint64_t>(QueueType::size_ * sizeof(MemoryIndex), ChunkSize_)};
+	static constexpr size_t memory_manager_size_() { return Ouro::alignment<uint64_t>(sizeof(OuroborosPages)); };
+	static constexpr size_t chunk_queue_size_{Ouro::alignment<uint64_t>(chunk_queue_size * sizeof(index_t), ChunkSize_)};
+	static constexpr size_t page_queue_size_{Ouro::alignment<uint64_t>(QueueType::size_ * sizeof(MemoryIndex), ChunkSize_)};
 
 	QueueType d_storage_reuse_queue[NumberQueues_];
 
@@ -205,7 +205,7 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 	using MyType = Ouroboros<OUROBOROS, OUROBOROSES...>;
 	using QI = typename ConcreteOuroboros::QI;
 
-	static constexpr size_t size_() { return alignment<size_t>(sizeof(Ouroboros<OUROBOROS, OUROBOROSES...>), ChunkBase::size_); };
+	static constexpr size_t size_() { return Ouro::alignment<size_t>(sizeof(Ouroboros<OUROBOROS, OUROBOROSES...>), ChunkBase::size_); };
 
 	Memory memory;
 	ConcreteOuroboros memory_manager;
@@ -234,6 +234,8 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 		// TODO: This should later relay to the correct mem man
 		memory_manager.d_storage_reuse_queue[queue_index].enqueueInitialChunk(&memory_manager, chunk_index, available_pages, pages_per_chunk);
 	}
+
+	MyType* getDeviceMemoryManager(){return reinterpret_cast<MyType*>(memory.d_memory);}
 
 	// -----------------------------------------------------------------------------------------------------------
 	// Private Interface
