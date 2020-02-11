@@ -104,7 +104,8 @@ template <typename ChunkType>
 template <typename MemoryManagerType>
 __forceinline__ __device__ void* PageQueue<ChunkType>::allocPage(MemoryManagerType* memory_manager)
 {
-	uint32_t chunk_index, page_index;
+	MemoryIndex index;
+	uint32_t chunk_index;
 	auto pages_per_chunk = MemoryManagerType::QI::getPagesPerChunkFromQueueIndex(queue_index_);
 
 	semaphore.wait(1, pages_per_chunk, [&]()
@@ -118,8 +119,8 @@ __forceinline__ __device__ void* PageQueue<ChunkType>::allocPage(MemoryManagerTy
 	
 	// Get index from queue
 	dequeue(index);
-
-	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index);
+	chunk_index = index.getChunkIndex();
+	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, index.getPageIndex(), page_size_);
 }
 
 // ##############################################################################################################################################

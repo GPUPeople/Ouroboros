@@ -1,10 +1,11 @@
 #include <iostream>
 
-#include "device/Ouroboros.cuh"
+#include "device/Ouroboros_impl.cuh"
+#include "device/MemoryInitialization.cuh"
 #include "InstanceDefinitions.cuh"
 #include "Utility.h"
 
-template <typename MemoryManagerType)
+template <typename MemoryManagerType>
 __global__ void d_testKernel(MemoryManagerType* mm)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -24,6 +25,7 @@ __global__ void d_testKernel(MemoryManagerType* mm)
 int main()
 {
 	#ifdef TEST_PAGES
+
 	#ifdef TEST_VIRTUALARRAY
 	using MemoryManagerType = OuroVAPQ;
 	std::cout << "Testing page-based memory manager - Virtualized Array!\n";
@@ -34,7 +36,9 @@ int main()
 	std::cout << "Testing page-based memory manager - Standard!\n";
 	using MemoryManagerType = OuroPQ;
 	#endif
-	#elif
+
+	#elif TEST_CHUNKS
+
 	#ifdef TEST_VIRTUALARRAY
 	std::cout << "Testing chunk-based memory manager - Virtualized Array!\n";
 	using MemoryManagerType = OuroVACQ;
@@ -45,6 +49,7 @@ int main()
 	std::cout << "Testing chunk-based memory manager - Standard!\n";
 	using MemoryManagerType = OuroCQ;
 	#endif
+
 	#endif
 
 	MemoryManagerType memory_manager;

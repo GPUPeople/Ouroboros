@@ -529,8 +529,8 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::setOldPointer(MemoryManag
 				--free_count;
 
 				if(printDebug)
-					printf("%d - %d Reuse index: %u \n", threadIdx.x, blockIdx.x, ChunkType::Base::template getIndexFromPointer(memory_manager->d_data, memory_manager->start_index, reinterpret_cast<ChunkType*>(current_old_ptr)));
-				memory_manager->d_chunk_reuse_queue.enqueue(ChunkType::Base::template getIndexFromPointer(memory_manager->d_data, memory_manager->start_index, reinterpret_cast<ChunkType*>(current_old_ptr)));
+					printf("%d - %d Reuse index: %u \n", threadIdx.x, blockIdx.x, ChunkType::Base::getIndexFromPointer(memory_manager->d_data, memory_manager->start_index, current_old_ptr));
+				memory_manager->d_chunk_reuse_queue.enqueue(ChunkType::Base::getIndexFromPointer(memory_manager->d_data, memory_manager->start_index, current_old_ptr));
 
 				current_old_ptr = reinterpret_cast<QueueChunk<ChunkBase>*>(current_old_ptr->next_);
 			}

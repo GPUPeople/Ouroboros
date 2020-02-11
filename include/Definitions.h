@@ -1,14 +1,26 @@
 #pragma once
 
+#include <typeinfo>
+#include <memory>
+#include <vector>
+#include <limits>
+
 #include <cuda_runtime_api.h>
 #include <device_launch_parameters.h>
 #include <cuda_runtime.h>
 
 using memory_t = int8_t;
+using index_t = uint32_t;
 
+static constexpr int CACHELINE_SIZE{ 128 };
+static constexpr int WARP_SIZE{ 32 };
+static constexpr int UNLOCK{ 0 };
+static constexpr int LOCK{ 1 };
 static constexpr unsigned int BYTE_SIZE{ 8 };
 static constexpr unsigned int CHUNK_IDENTIFIER{ std::numeric_limits<unsigned int>::max() };
 static constexpr unsigned int QUEUECHUNK_IDENTIFIER{ std::numeric_limits<unsigned int>::max() - 1 };
+static constexpr int FALSE {0};
+static constexpr int TRUE {1};
 
 template <typename DataType>
 struct DeletionMarker

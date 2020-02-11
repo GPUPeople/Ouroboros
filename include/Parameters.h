@@ -1,14 +1,8 @@
 #pragma once
 
-#include "Utility.h"
-
 static constexpr bool FINAL_RELEASE{false};
 
 // General Params
-static constexpr int CACHELINE_SIZE{ 128 };
-static constexpr int WARP_SIZE{ 32 };
-static constexpr int UNLOCK{ 0 };
-static constexpr int LOCK{ 1 };
 static constexpr unsigned int SLEEP_TIME{ 10 };
 // static constexpr unsigned long long ALLOCATION_SIZE{ 9ULL * 1024ULL * 1024ULL * 1024ULL };
 static constexpr unsigned long long ALLOCATION_SIZE{ 2048ULL * 1024ULL * 1024ULL };
@@ -25,7 +19,18 @@ static constexpr float LOWER_FILL_LEVEL_PERCENTAGE{0.2f}; // When to start relea
 static constexpr int SMALLEST_PAGE_SIZE{ 16}; // Smallest page size (16 Bytes)
 static constexpr int CHUNK_SIZE{ SMALLEST_PAGE_SIZE << (NUM_QUEUES - 1) }; // Chunksize computed from smallest page size and number of queues
 static constexpr int CHUNK_METADATA_SIZE{ 128 };
-static constexpr int NUM_BITS_FOR_PAGE{ Ouro::countBitShift(CHUNK_SIZE / SMALLEST_PAGE_SIZE) }; // How many bits do we need for the page index in the combined index
+static constexpr int countBitShift(unsigned int x)
+{
+	if (x == 0) return 0;
+	int n = 0;
+	if (x <= 0x0000FFFF) { n = n + 16; x = x << 16; }
+	if (x <= 0x00FFFFFF) { n = n + 8; x = x << 8; }
+	if (x <= 0x0FFFFFFF) { n = n + 4; x = x << 4; }
+	if (x <= 0x3FFFFFFF) { n = n + 2; x = x << 2; }
+	if (x <= 0x7FFFFFFF) { n = n + 1; x = x << 1; }
+	return 31 - n;
+}
+static constexpr int NUM_BITS_FOR_PAGE{ countBitShift(CHUNK_SIZE / SMALLEST_PAGE_SIZE) }; // How many bits do we need for the page index in the combined index
 
 // Print & Statistics
 static constexpr bool turn_off_all_print_output{false};

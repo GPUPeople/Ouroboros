@@ -99,15 +99,13 @@ __forceinline__ __device__ void Ouroboros<OUROBOROS, OUROBOROSES...>::free(void*
 	{
 		if(printDebug)
 			printf("Freeing CUDA Memory!\n");
-		free(adjacency);
+		free(ptr);
 		return;
 	}
-
-	auto chunk_index = CommonChunk::getIndexFromPointer(memory.d_data, memory.start_index, ptr);
+	unsigned int chunk_index = ChunkBase::getIndexFromPointer(memory.d_data, memory.start_index, ptr);
 	auto chunk = reinterpret_cast<CommonChunk*>(ConcreteOuroboros::ChunkBase::getMemoryAccess(memory.d_data, memory.start_index, chunk_index));
 	auto page_size = chunk->page_size;
-	auto page_index = CommonChunk::getPageIndexFromPointer(memory.d_data, memory.start_index, ptr, page_size)
-	index.getIndex(chunk_index, page_index);
+	auto index = ChunkBase::getPageIndexFromPointer(memory.d_data, memory.start_index, ptr, page_size);
 	return freePageRecursive(page_size, index);
 }
 

@@ -70,7 +70,8 @@ __forceinline__ __device__ void* PageQueueVL<CHUNK_TYPE>::allocPage(MemoryManage
 {
 	using ChunkType = typename MemoryManagerType::ChunkType;
 
-	uint32_t chunk_index, page_index;
+	MemoryIndex index;
+	uint32_t chunk_index;
 	auto pages_per_chunk = MemoryManagerType::QI::getPagesPerChunkFromQueueIndex(queue_index_);
 
 	semaphore.wait(1, pages_per_chunk, [&]()
@@ -88,14 +89,15 @@ __forceinline__ __device__ void* PageQueueVL<CHUNK_TYPE>::allocPage(MemoryManage
 	unsigned int virtual_pos = atomicAdd(&front_, 1);
 	front_ptr_->template dequeue<QueueChunkType::DEQUEUE_MODE::DEQUEUE>(memory_manager, virtual_pos, index.index, &front_ptr_, &old_ptr_, &old_count_);
 
-	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index);
+	chunk_index = index.getChunkIndex();
+	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, index.getPageIndex(), page_size_);
 }
 
 // ##############################################################################################################################################
 //
 template <typename CHUNK_TYPE>
 template <typename MemoryManagerType>
-__forceinline__ __device__ void PageQueueVL<CHUNK_TYPE>::freePage(MemoryManagerType* memory_manager, MemoryIndex& index)
+__forceinline__ __device__ void PageQueueVL<CHUNK_TYPE>::freePage(MemoryManagerType* memory_manager, MemoryIndex index)
 {
 	enqueue(memory_manager, index.index);
 	

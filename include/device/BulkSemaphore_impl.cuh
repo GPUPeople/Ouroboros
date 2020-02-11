@@ -7,7 +7,7 @@
 __forceinline__ __device__ bool BulkSemaphore::tryReduce(int N)
 {
 	// Reduce by N-1
-	uint32_t atomic_ret_val = atomicAdd(&value, create2Complement(N)) & highest_value_mask;
+	uint32_t atomic_ret_val = atomicAdd(&value, Ouro::create2Complement(N)) & highest_value_mask;
 	if((atomic_ret_val - N) < null_value)
 	{
 		atomicAdd(&value, N);
@@ -32,7 +32,7 @@ __forceinline__ __device__ void BulkSemaphore::wait(int N, uint32_t number_pages
 		if(getCount() - N >= 0)
 		{
 			// Try to decrement global count first
-			uint32_t atomic_ret_val = atomicAdd(&value, create2Complement(N)) & highest_value_mask;
+			uint32_t atomic_ret_val = atomicAdd(&value, Ouro::create2Complement(N)) & highest_value_mask;
 			if((atomic_ret_val - N) >= null_value)
 			{
 				return;
@@ -132,7 +132,7 @@ __forceinline__ __device__ void BulkSemaphore::wait(int N, uint32_t number_pages
 		{
 			if(getCount() - static_cast<int>(num) >= 0)
 			{
-				uint32_t atomic_ret_val = atomicAdd(&value, create2Complement(num)) & highest_value_mask; // Try to decrement global count first
+				uint32_t atomic_ret_val = atomicAdd(&value, Ouro::create2Complement(num)) & highest_value_mask; // Try to decrement global count first
 				if((atomic_ret_val - num) >= null_value)
 				{
 					break;

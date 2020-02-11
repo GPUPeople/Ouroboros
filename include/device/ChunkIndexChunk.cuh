@@ -40,7 +40,12 @@ struct ChunkIndexChunk : public CommonChunk
 		return ChunkBase::getData(memory, start_index, chunk_index);
 	}
 
-	static __forceinline__ __device__ __host__ void* getPage(memory_t* memory, const uint64_t start_index, const index_t chunk_index, const uint32_t page_index)
+	__forceinline__ __device__ __host__ void* getPage(memory_t* memory, const uint64_t start_index, const index_t chunk_index, const uint32_t page_index)
+	{
+		return ChunkBase::getPage(memory, start_index, chunk_index, page_index, page_size);
+	}
+
+	static __forceinline__ __device__ __host__ void* getPage(memory_t* memory, const uint64_t start_index, const index_t chunk_index, const uint32_t page_index, const unsigned int page_size)
 	{
 		return ChunkBase::getPage(memory, start_index, chunk_index, page_index, page_size);
 	}
@@ -73,14 +78,14 @@ struct ChunkIndexChunk : public CommonChunk
 	static __forceinline__ __device__ __host__ ChunkIndexChunk* initializeChunk(memory_t* memory, const uint64_t start_index, const index_t chunk_index, 
 		const int available_pages, const uint32_t number_pages, const unsigned int queue_position = DeletionMarker<unsigned int>::val)
 	{
-		static_assert(Ouro::alignment(sizeof(Chunk)) <= meta_data_size_, "Chunk is larger than alignment!");
+		static_assert(Ouro::alignment(sizeof(ChunkIndexChunk)) <= meta_data_size_, "Chunk is larger than alignment!");
 		return new(reinterpret_cast<char*>(getAccess(memory, start_index, chunk_index))) ChunkIndexChunk((size_ / number_pages), available_pages, number_pages, queue_position);
 	}
 
 	static __forceinline__ __device__ __host__ ChunkIndexChunk* initializeEmptyChunk(memory_t* memory, const uint64_t start_index, const index_t chunk_index, 
 		const uint32_t number_pages, const unsigned int queue_position = DeletionMarker<unsigned int>::val)
 	{
-		static_assert(Ouro::alignment(sizeof(Chunk)) <= meta_data_size_, "Chunk is larger than alignment!");
+		static_assert(Ouro::alignment(sizeof(ChunkIndexChunk)) <= meta_data_size_, "Chunk is larger than alignment!");
 		return new(reinterpret_cast<char*>(getAccess(memory, start_index, chunk_index))) ChunkIndexChunk((size_ / number_pages), number_pages, queue_position);
 	}
 };

@@ -48,9 +48,9 @@ struct OuroborosBase
 	Statistics stats;
 
 	// Error Code
-	ErrorType error{ErrorVal<ErrorType, ErrorCodes::NO_ERROR>::value};
+	Ouro::ErrorType error{Ouro::ErrorVal<Ouro::ErrorType, Ouro::ErrorCodes::NO_ERROR>::value};
 
-	bool checkError() { return ErrorVal<ErrorType, ErrorCodes::NO_ERROR>::checkError(error); }
+	bool checkError() { return Ouro::ErrorVal<Ouro::ErrorType, Ouro::ErrorCodes::NO_ERROR>::checkError(error); }
 };
 
 template <template <class /*CHUNK_TYPE*/> class QUEUE_TYPE, typename CHUNK_BASE, unsigned int SMALLEST_SIZE, unsigned int NUMBER_QUEUES>
@@ -66,7 +66,7 @@ struct OuroborosChunks : OuroborosBase
 
 	
 	using ChunkBase = CHUNK_BASE;
-	using ChunkType = Chunk<ChunkBase, ChunkSize_, SmallestPageSize_>;
+	using ChunkType = ChunkIndexChunk<ChunkBase, ChunkSize_, SmallestPageSize_>;
 	using QueueType = QUEUE_TYPE<ChunkType>;
 	using QI = QueueIndex<SmallestPageSize_, ChunkSize_>;
 
@@ -88,6 +88,10 @@ struct OuroborosChunks : OuroborosBase
 
 	__forceinline__ __device__ void freePage(MemoryIndex index);
 
+	__forceinline__ __device__ void initializeQueues();
+
+	__forceinline__ __device__ void printFreeResources();
+
 	// #################################################################################################
 	// Functionality
 	__forceinline__ __device__ bool allocateChunk(index_t& chunk_index)
@@ -106,20 +110,16 @@ struct OuroborosChunks : OuroborosBase
 		#endif
 	}
 
-	__forceinline__ __device__ void initializeQueues();
-
 	void printQueueStatistics()
 	{
 		printf("%sPage Queue Fill Rate\n%s", break_line_purple_s, break_line);
 		for(auto i = 0; i < NumberQueues_; ++i)
 		{
-			printProgressBar(d_storage_reuse_queue[i].getCount() / static_cast<double>(d_storage_reuse_queue[i].size_));
-			printProgressBarEnd();
+			Ouro::printProgressBar(d_storage_reuse_queue[i].getCount() / static_cast<double>(d_storage_reuse_queue[i].size_));
+			Ouro::printProgressBarEnd();
 		}
 		printf("%s", break_line_purple);
 	}
-
-	__forceinline__ __device__ void printFreeResources();
 };
 
 template <template <class /*CHUNK_TYPE*/> class QUEUE_TYPE, typename CHUNK_BASE, unsigned int SMALLEST_SIZE, unsigned int NUMBER_QUEUES>
@@ -183,8 +183,8 @@ struct OuroborosPages : OuroborosBase
 		printf("%sPage Queue Fill Rate\n%s", break_line_purple_s, break_line);
 		for(auto i = 0; i < NumberQueues_; ++i)
 		{
-			printProgressBar(d_storage_reuse_queue[i].getCount() / static_cast<double>(d_storage_reuse_queue[i].size_));
-			printProgressBarEnd();
+			Ouro::printProgressBar(d_storage_reuse_queue[i].getCount() / static_cast<double>(d_storage_reuse_queue[i].size_));
+			Ouro::printProgressBarEnd();
 		}
 		printf("%s", break_line_purple);
 	}
@@ -318,7 +318,7 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 		}
 	};
 
-	HeapAllocator createHeapAllocator(unsigned int offset_in_bytes = 0) {return HeapAllocator(memory.d_data + memory.additionalSizeBeginning + alignment<size_t>(offset_in_bytes));}
+	HeapAllocator createHeapAllocator(unsigned int offset_in_bytes = 0) {return HeapAllocator(memory.d_data + memory.additionalSizeBeginning + Ouro::alignment<size_t>(offset_in_bytes));}
 };
 
 template <>
@@ -330,36 +330,24 @@ struct Ouroboros<>
 	__forceinline__ __device__ void* malloc(size_t size)
 	{
 	#ifdef __CUDA_ARCH__
-		index.index = std::numeric_limits<decltype(index.index)>::max();
-		void* ptr = malloc(AllocationHelper::getNextPow2(size));
-		if(ptr == nullptr)
-		{
-			if(printDebug)
-			{
-				printf("CUDA Malloc FAILED\n");
-			}
-		}
-		return ptr;
+		return malloc(AllocationHelper::getNextPow2(size));
 	#else
 		return nullptr;
 	#endif
 	}
 
-	__forceinline__ __device__ void freePageRecursive(void* ptr)
+	__forceinline__ __device__ void freePageRecursive(unsigned int page_size, MemoryIndex index)
 	{
-		printf("Spilled into empty Ouroboros, this should not happend: %u\n", page_size);
+		printf("Spilled into empty Ouroboros, this should not happend\n");
 		__trap();
 	}
 
 	__forceinline__ __device__ void setMemory(Memory* memory){}
 	__forceinline__ __device__ void initQueues() {}
-	void printFreeResources(){}
 	__forceinline__ __device__ void d_printResources(){}
-
+	void printFreeResources(){}
 	static constexpr int totalNumberQueues(){return 0;}
 };
-
-
 
 template <typename MemoryManagerType>
 void updateMemoryManagerDevice(MemoryManagerType& memory_manager);

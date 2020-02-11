@@ -36,8 +36,8 @@ struct AllocationHelper
 template <unsigned int SMALLEST_PAGE_SIZE, unsigned int SIZE>
 struct QueueIndex
 {
-	static constexpr int pages_per_chunk_factor{SIZE / SMALLEST_SIZE};
-	static constexpr int smallest_page_factor{AllocationHelper::static_getNextPow2Pow<unsigned int, SMALLEST_PAGE_SIZE>};
+	static constexpr int pages_per_chunk_factor{SIZE / SMALLEST_PAGE_SIZE};
+	static constexpr int smallest_page_factor{AllocationHelper::static_getNextPow2Pow<unsigned int, SMALLEST_PAGE_SIZE>()};
 
 	static __device__ __host__ __forceinline__ int getQueueIndex(size_t size)
 	{
@@ -51,11 +51,11 @@ struct QueueIndex
 
 	static __device__ __host__ __forceinline__ size_t getPagesPerChunk(size_t size)
 	{
-		return SIZE / (getPageSize(n));
+		return SIZE / getPageSize(size);
 	}
 
 	static __device__ __host__ __forceinline__ size_t getPagesPerChunkFromQueueIndex(unsigned int index)
 	{
-		return (pages_per_chunk_factor >> index));
+		return pages_per_chunk_factor >> index;
 	}
 };

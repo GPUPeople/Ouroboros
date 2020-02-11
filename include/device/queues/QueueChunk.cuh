@@ -23,15 +23,15 @@ struct QueueChunk : public CommonChunk
 	}; // Enqueue vectorized or single element
 
 	// Static members
+	static constexpr auto size_{ChunkBase::size_};
 	static constexpr unsigned int num_spots_{ size_ / sizeof(QueueDataType) }; // How many indices can one QueueChunk store
-	static constexpr unsigned int shift_value {(sizeof(count_) * 8) / 2}; // Given count, how many bits given for countA
+	static constexpr unsigned int shift_value {(sizeof(unsigned int) * 8) / 2}; // Given count, how many bits given for countA
 	static constexpr unsigned int lower_mask {(1 << shift_value) - 1}; // Mask to get countA
 	static constexpr unsigned int upper_mask {~lower_mask}; // Mask to get countB
 	static constexpr int vector_width{4}; // How large is the vector store unit
 	static constexpr unsigned int num_spots_vec4{num_spots_/vector_width}; // How many iterations on a QueueChunk given this vector width
 	static constexpr unsigned int chunk_empty_count_dequeue {(num_spots_ + (1 << shift_value))}; // After Dequeue, this value signals chunk empty
 	static constexpr uint4 deletionmarker_vec4{DeletionMarker<QueueDataType>::val, DeletionMarker<QueueDataType>::val, DeletionMarker<QueueDataType>::val, DeletionMarker<QueueDataType>::val};
-	static constexpr auto size_{ChunkBase::size_};
 
 	// Members
 	QueueDataType* queue_{nullptr}; // Queue data

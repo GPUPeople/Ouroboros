@@ -59,7 +59,7 @@ struct PageQueueVA
 	__forceinline__ __device__ void* allocPage(MemoryManagerType* memory_manager);
 
 	template <typename MemoryManagerType>
-	__forceinline__ __device__ void freePage(MemoryManagerType* memory_manager, MemoryIndex& index);
+	__forceinline__ __device__ void freePage(MemoryManagerType* memory_manager, MemoryIndex index);
 
 	template <typename MemoryManagerType>
 	__forceinline__ __device__ QueueChunkType* accessQueueElement(MemoryManagerType* memory_manager, index_t chunk_id, index_t v_position);

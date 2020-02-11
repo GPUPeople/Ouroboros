@@ -3,7 +3,7 @@
 #include "Definitions.h"
 #include "device/BulkSemaphore.cuh"
 #include "Parameters.h"
-#include "device/PageChunk.cuh"
+#include "device/PageIndexChunk.cuh"
 
 // Forward declaration
 struct MemoryIndex;

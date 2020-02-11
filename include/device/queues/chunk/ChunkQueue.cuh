@@ -44,7 +44,7 @@ struct ChunkQueue
 	__forceinline__ __device__ void* allocPage(MemoryManagerType* memory_manager);
 
 	template <typename MemoryManagerType>
-	__forceinline__ __device__ void freePage(MemoryManagerType* memory_manager, MemoryIndex& index);
+	__forceinline__ __device__ void freePage(MemoryManagerType* memory_manager, MemoryIndex index);
 
 	template <typename MemoryManagerType>
 	__forceinline__ __device__ bool preFillQueue(MemoryManagerType* memory_manager, index_t chunk_index, index_t pages_per_chunk, ChunkType* chunk = nullptr)

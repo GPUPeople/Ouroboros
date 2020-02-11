@@ -4,6 +4,20 @@
 
 // ##############################################################################################################################################
 //
+__global__ void printCompute()
+{
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	if(tid >= 1)
+		return;
+	#if (__CUDA_ARCH__ >= 700)
+			printf("ASYNC - COMPUTE MODE");
+		#else
+			printf("SYNC - COMPUTE MODE");
+		#endif
+}
+
+// ##############################################################################################################################################
+//
 template <typename MemoryManagerType>
 __global__ void d_cleanChunks(MemoryManagerType* memory_manager, unsigned int offset)
 {

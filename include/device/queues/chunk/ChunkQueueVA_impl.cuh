@@ -166,21 +166,19 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 		}
 	}
 
-	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index);
+	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index, page_size_);
 }
 
 // ##############################################################################################################################################
 //
 template <typename CHUNK_TYPE>
 template <typename MemoryManagerType>
-__forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::freePage(MemoryManagerType* memory_manager, MemoryIndex& index)
+__forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::freePage(MemoryManagerType* memory_manager, MemoryIndex index)
 {
 	using ChunkType = typename MemoryManagerType::ChunkType;
 
-	uint32_t chunk_index, page_index;
-	index.getIndex(chunk_index, page_index);
-	auto chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, chunk_index);
-	auto mode = chunk->access.freePage(page_index);
+	auto chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, index.getChunkIndex());
+	auto mode = chunk->access.freePage(index.getPageIndex());
 	if(mode == ChunkType::ChunkAccessType::FreeMode::FIRST_FREE)
 	{
 		// Please do NOT reorder here
@@ -189,7 +187,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::freePage(MemoryManager
 		// We are the first to free something in this chunk, add it back to the queue
 		if (atomicAdd(&count_, 1) < static_cast<int>(num_spots_))
 		{
-			enqueue(memory_manager, chunk_index);
+			enqueue(memory_manager, index.getChunkIndex());
 		}
 		else
 		{

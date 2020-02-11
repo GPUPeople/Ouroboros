@@ -37,9 +37,9 @@ struct PageChunk : public CommonChunk
 		return Base::getData(memory, start_index, chunk_index);
 	}
 
-	static __forceinline__ __device__ __host__ void* getPage(memory_t* memory, const uint64_t start_index, const index_t chunk_index, const uint32_t page_index)
+	static __forceinline__ __device__ __host__ void* getPage(memory_t* memory, const uint64_t start_index, const index_t chunk_index, const uint32_t page_index, const unsigned int page_size)
 	{
-		return ChunkBase::getPage(memory, start_index, chunk_index, page_index, page_size);
+		return Base::getPage(memory, start_index, chunk_index, page_index, page_size);
 	}
 
 	template <typename QI>
@@ -66,7 +66,7 @@ struct PageChunk : public CommonChunk
 	// 
 	static __forceinline__ __device__ __host__ PageChunk* getAccess(memory_t* memory, uint64_t start_index, index_t chunk_index)
 	{
-		return Base::getMemoryAccess<PageChunk>(memory, start_index, chunk_index);
+		return Base::template getMemoryAccess<PageChunk>(memory, start_index, chunk_index);
 	}
 
 	// ##############################################################################################################################################
@@ -82,6 +82,6 @@ struct PageChunk : public CommonChunk
 	static __forceinline__ __device__ __host__ PageChunk* initializeChunk(memory_t* memory, uint64_t start_index, index_t chunk_index, const int available_pages, uint32_t number_pages)
 	{
 		static_assert(Ouro::alignment(sizeof(PageChunk)) <= meta_data_size_, "PageChunk is larger than alignment!");
-		return new(Base::getMemoryAccess<memory_t>(memory, start_index, chunk_index)) PageChunk((size_ / number_pages), number_pages);
+		return new(Base::template getMemoryAccess<memory_t>(memory, start_index, chunk_index)) PageChunk((size_ / number_pages), number_pages);
 	}
 };

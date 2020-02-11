@@ -163,23 +163,21 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 		}
 	}
 	
-	return chunk->getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index);
+	return chunk->getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index, page_size_);
 }
 
 // ##############################################################################################################################################
 //
 template <typename ChunkType>
 template <typename MemoryManagerType>
-__forceinline__ __device__ void ChunkQueue<ChunkType>::freePage(MemoryManagerType* memory_manager, MemoryIndex& index)
+__forceinline__ __device__ void ChunkQueue<ChunkType>::freePage(MemoryManagerType* memory_manager, MemoryIndex index)
 {
-	uint32_t chunk_index, page_index;
-	index.getIndex(chunk_index, page_index);
-	auto chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, chunk_index);
-	auto mode = chunk->access.freePage(page_index);
+	auto chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, index.getChunkIndex());
+	auto mode = chunk->access.freePage(index.getPageIndex());
 	if(mode == ChunkType::ChunkAccessType::FreeMode::FIRST_FREE)
 	{
 		// We are the first to free something in this chunk, add it back to the queue
-		enqueue(chunk_index, chunk);
+		enqueue(index.getChunkIndex(), chunk);
 	}
 	// TODO: This is NOT guaranteed to work as intended as signal happens after free
 	else if(mode == ChunkType::ChunkAccessType::FreeMode::DEQUEUE && Ouro::ldg_cg(&count_) > lower_fill_level)
@@ -195,7 +193,7 @@ __forceinline__ __device__ void ChunkQueue<ChunkType>::freePage(MemoryManagerTyp
 				// Reduce queue count, take element out of queue and put it into the reuse queue
 				atomicExch(queue_ + chunk->queue_pos, DeletionMarker<index_t>::val);
 				atomicSub(&count_, 1);
-				memory_manager->d_chunk_reuse_queue.template enqueueClean<MemoryManagerType::ChunkSize_>(chunk_index, reinterpret_cast<index_t*>(reinterpret_cast<memory_t*>(chunk) + ChunkType::meta_data_size_));
+				memory_manager->d_chunk_reuse_queue.template enqueueClean<MemoryManagerType::ChunkSize_>(index.getChunkIndex(), reinterpret_cast<index_t*>(reinterpret_cast<memory_t*>(chunk) + ChunkType::meta_data_size_));
 				if(printDebug)
 					printf("Successfull re-use of chunk\n");
 				if(statistics_enabled)

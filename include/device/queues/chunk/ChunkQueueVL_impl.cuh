@@ -65,6 +65,7 @@ __forceinline__ __device__ void* ChunkQueueVL<CHUNK_TYPE>::allocPage(MemoryManag
 {
 	using ChunkType = typename MemoryManagerType::ChunkType;
 
+	MemoryIndex index;
 	uint32_t chunk_index, page_index;
 	auto pages_per_chunk = MemoryManagerType::QI::getPagesPerChunkFromQueueIndex(queue_index_);
 	ChunkType* chunk{ nullptr };
@@ -131,24 +132,24 @@ __forceinline__ __device__ void* ChunkQueueVL<CHUNK_TYPE>::allocPage(MemoryManag
 		}
 	}
 
-	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index);
+	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index, page_size_);
 }
 
 // ##############################################################################################################################################
 //
 template <typename CHUNK_TYPE>
 template <typename MemoryManagerType>
-__forceinline__ __device__ void ChunkQueueVL<CHUNK_TYPE>::freePage(MemoryManagerType* memory_manager, MemoryIndex& index)
+__forceinline__ __device__ void ChunkQueueVL<CHUNK_TYPE>::freePage(MemoryManagerType* memory_manager, MemoryIndex index)
 {
 	using ChunkType = typename MemoryManagerType::ChunkType;
 
 	uint32_t chunk_index, page_index;
 	index.getIndex(chunk_index, page_index);
-	auto chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, chunk_index);
-	auto mode = chunk->access.freePage(page_index);
+	auto chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, index.getChunkIndex());
+	auto mode = chunk->access.freePage(index.getPageIndex());
 	if(mode == ChunkType::ChunkAccessType::FreeMode::FIRST_FREE)
 	{
-		enqueue(memory_manager, chunk_index);
+		enqueue(memory_manager, index.getChunkIndex());
 	}
 	else if(mode == ChunkType::ChunkAccessType::FreeMode::DEQUEUE)
 	{
