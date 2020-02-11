@@ -57,7 +57,9 @@ int main()
 
 	d_testKernel <MemoryManagerType> <<<1, 32>>>(memory_manager.getDeviceMemoryManager());
 
-	cudaDeviceSynchronize();
+	HANDLE_ERROR(cudaDeviceSynchronize());
+
+	std::cout << "Testcase DONE!\n";
 	
 	return 0;
 }

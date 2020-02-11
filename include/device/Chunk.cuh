@@ -51,7 +51,8 @@ struct Chunk
 	// 
 	static __forceinline__ __device__ __host__ index_t getIndexFromPointer(memory_t* memory, uint64_t start_index, void* chunk)
 	{
-		const auto highest_address = reinterpret_cast<unsigned long long>(getMemoryAccess<memory_t>(memory, start_index, 0));
+		// start index points to beginning of chunk 0, so go one above so the differences make sense
+		const auto highest_address = reinterpret_cast<unsigned long long>(&memory[(start_index + 1) * size()]);
 		const auto chunk_address = reinterpret_cast<unsigned long long>(chunk);
 		return (highest_address - chunk_address) / size();
 	}
@@ -61,8 +62,8 @@ struct Chunk
 	static __forceinline__ __device__ MemoryIndex getPageIndexFromPointer(memory_t* memory, const uint64_t start_index, void* page, index_t page_size)
 	{
 		MemoryIndex index;
-		// start index points to chunk 0, so go one above
-		const auto highest_address = reinterpret_cast<unsigned long long>(getMemoryAccess<memory_t>(memory, start_index, 1));
+		// start index points to beginning of chunk 0, so go one above so the differences make sense
+		const auto highest_address = reinterpret_cast<unsigned long long>(&memory[(start_index + 1) * size()]);
 		const auto page_address = reinterpret_cast<unsigned long long>(page);
 		const auto difference = highest_address - page_address;
 		// By dividing the left over difference by the size of a chunk, we should get the correct chunk index (due to rounding down)

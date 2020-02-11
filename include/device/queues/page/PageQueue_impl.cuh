@@ -119,8 +119,9 @@ __forceinline__ __device__ void* PageQueue<ChunkType>::allocPage(MemoryManagerTy
 	
 	// Get index from queue
 	dequeue(index);
-	chunk_index = index.getChunkIndex();
-	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, index.getPageIndex(), page_size_);
+
+	// Return page to caller
+	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, index.getChunkIndex(), index.getPageIndex(), page_size_);
 }
 
 // ##############################################################################################################################################
@@ -129,5 +130,6 @@ template <typename ChunkType>
 template <typename MemoryManagerType>
 __forceinline__ __device__ void PageQueue<ChunkType>::freePage(MemoryManagerType* memory_manager, MemoryIndex index)
 {
+	// Enqueue this index into the queue
 	enqueue(index.index);
 }
