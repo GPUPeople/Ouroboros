@@ -84,7 +84,7 @@ struct OuroborosChunks : OuroborosBase
 
 	void reinitialize(float overallocation_factor);
 
-	__forceinline__ __device__ void* allocPage(size_t size); /* Size in number of items, NOT Bytes */
+	__forceinline__ __device__ void* allocPage(size_t size);
 
 	__forceinline__ __device__ void freePage(MemoryIndex index);
 
@@ -97,16 +97,20 @@ struct OuroborosChunks : OuroborosBase
 	__forceinline__ __device__ bool allocateChunk(index_t& chunk_index)
 	{
 		#ifdef __CUDA_ARCH__
+
 		if(statistics_enabled)
 			atomicAdd(&stats.chunkAllocationCount, 1);
 		if(d_chunk_reuse_queue.dequeue(chunk_index))
 			return true;
 		chunk_index = atomicAdd(next_free_chunk, ChunkAddFactor_);
 		return (chunk_index + ChunkAddFactor_) < maxChunks;
+
 		#else
+
 		chunk_index = *next_free_chunk;
 		*next_free_chunk += ChunkAddFactor_;
 		return (chunk_index + ChunkAddFactor_) < maxChunks;
+
 		#endif
 	}
 
@@ -152,7 +156,7 @@ struct OuroborosPages : OuroborosBase
 
 	void reinitialize(float overallocation_factor);
 
-    __forceinline__ __device__ void* allocPage(size_t size); /* Size in number of items, NOT Bytes */
+    __forceinline__ __device__ void* allocPage(size_t size);
 
 	 __forceinline__ __device__ void freePage(MemoryIndex index);
 
@@ -161,6 +165,7 @@ struct OuroborosPages : OuroborosBase
 	__forceinline__ __device__ bool allocateChunk(index_t& chunk_index)
 	{
 		#ifdef __CUDA_ARCH__
+
 		if(statistics_enabled)
 			atomicAdd(&stats.chunkAllocationCount, 1);
 		if(d_chunk_reuse_queue.dequeue(chunk_index))
@@ -169,10 +174,13 @@ struct OuroborosPages : OuroborosBase
 		}
 		chunk_index = atomicAdd(next_free_chunk, ChunkAddFactor_);
 		return (chunk_index + ChunkAddFactor_) < maxChunks;
+
 		#else
+
 		chunk_index = *next_free_chunk;
 		*next_free_chunk += ChunkAddFactor_;
 		return (chunk_index + ChunkAddFactor_) < maxChunks;
+
 		#endif
 	}
 
@@ -210,6 +218,7 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 	Memory memory;
 	ConcreteOuroboros memory_manager;
 	Next next_memory_manager;
+	ChunkLocator chunk_locator;
 
 	bool initialized{false};
 	Statistics stats;
@@ -223,7 +232,7 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 
 	void reinitialize(float overallocation_factor);
 
-	__forceinline__ __device__ void* malloc(size_t size); /* Size in number of items, NOT Bytes */
+	__forceinline__ __device__ void* malloc(size_t size);
 
 	__forceinline__ __device__ void free(void* adjacency);
 

@@ -4,6 +4,7 @@
 #include "device/MemoryIndex.cuh"
 #include "device/Helper.cuh"
 #include "Parameters.h"
+#include "device/ChunkLocator.cuh"
 
 struct CommonChunk
 {

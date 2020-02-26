@@ -59,14 +59,17 @@ int main(int argc, char* argv[])
 	#ifdef TEST_PAGES
 
 	#ifdef TEST_VIRTUALARRAY
-	using MemoryManagerType = OuroVAPQ;
 	std::cout << "Testing page-based memory manager - Virtualized Array!\n";
+	using MemoryManagerType = OuroVAPQ;
+	// using MemoryManagerType = MultiOuroVAPQ;
 	#elif TEST_VIRTUALLIST
 	std::cout << "Testing page-based memory manager - Virtualized List!\n";
 	using MemoryManagerType = OuroVLPQ;
+	// using MemoryManagerType = MultiOuroVLPQ;
 	#else
 	std::cout << "Testing page-based memory manager - Standard!\n";
 	using MemoryManagerType = OuroPQ;
+	// using MemoryManagerType = MultiOuroPQ;
 	#endif
 
 	#elif TEST_CHUNKS
@@ -74,12 +77,15 @@ int main(int argc, char* argv[])
 	#ifdef TEST_VIRTUALARRAY
 	std::cout << "Testing chunk-based memory manager - Virtualized Array!\n";
 	using MemoryManagerType = OuroVACQ;
+	// using MemoryManagerType = MultiOuroVACQ;
 	#elif TEST_VIRTUALLIST
 	std::cout << "Testing chunk-based memory manager - Virtualized List!\n";
 	using MemoryManagerType = OuroVLCQ;
+	// using MemoryManagerType = MultiOuroVLCQ;
 	#else
 	std::cout << "Testing chunk-based memory manager - Standard!\n";
 	using MemoryManagerType = OuroCQ;
+	// using MemoryManagerType = MultiOuroCQ;
 	#endif
 
 	#endif

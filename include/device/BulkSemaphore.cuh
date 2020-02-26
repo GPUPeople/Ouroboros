@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utility.cuh"
+
 struct BulkSemaphore
 {
 	// | --- Counter (20 + 1 bits) --- | --- Expected (21 bits) --- | --- Reserved (21 bits) --- |
