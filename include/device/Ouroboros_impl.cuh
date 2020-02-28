@@ -102,8 +102,15 @@ __forceinline__ __device__ void Ouroboros<OUROBOROS, OUROBOROSES...>::free(void*
 		free(ptr);
 		return;
 	}
-	unsigned int chunk_index = ChunkBase::getIndexFromPointer(memory.d_data, memory.start_index, ptr);
-	auto chunk = reinterpret_cast<CommonChunk*>(ConcreteOuroboros::ChunkBase::getMemoryAccess(memory.d_data, memory.start_index, chunk_index));
+	auto chunk_index = ChunkBase::getIndexFromPointer(memory.d_data, memory.start_index, ptr);
+	auto revised_chunk_index = memory.chunk_locator.getChunkIndex(chunk_index);
+	if(chunk_index != revised_chunk_index)
+	{
+		// TODO: remove
+		printf("Chunk Index is not the same: %u | %u\n", chunk_index, revised_chunk_index);
+		__trap();
+	}
+	auto chunk = reinterpret_cast<CommonChunk*>(ConcreteOuroboros::ChunkBase::getMemoryAccess(memory.d_data, memory.start_index, revised_chunk_index));
 	auto page_size = chunk->page_size;
 	auto index = ChunkBase::getPageIndexFromPointer(memory.d_data, memory.start_index, ptr, page_size);
 	return freePageRecursive(page_size, index);

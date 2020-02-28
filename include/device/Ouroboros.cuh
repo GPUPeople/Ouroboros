@@ -19,6 +19,8 @@ struct Memory
 	size_t adjacencysize{ 0 };
 	size_t additionalSizeBeginning{0};
 	size_t additionalSizeEnd{0};
+
+	ChunkLocator chunk_locator;
 };
 
 struct OuroborosBase
@@ -29,6 +31,7 @@ struct OuroborosBase
 	uint64_t start_index;
 	index_t* next_free_chunk{ nullptr };
 	size_t maxChunks{ 0 };
+	ChunkLocator* chunk_locator{nullptr};
 
 	bool initialized{ false };
 
@@ -94,6 +97,7 @@ struct OuroborosChunks : OuroborosBase
 
 	// #################################################################################################
 	// Functionality
+	template <bool QUEUECHUNK = false>
 	__forceinline__ __device__ bool allocateChunk(index_t& chunk_index)
 	{
 		#ifdef __CUDA_ARCH__
@@ -102,14 +106,15 @@ struct OuroborosChunks : OuroborosBase
 			atomicAdd(&stats.chunkAllocationCount, 1);
 		if(d_chunk_reuse_queue.dequeue(chunk_index))
 			return true;
-		chunk_index = atomicAdd(next_free_chunk, ChunkAddFactor_);
-		return (chunk_index + ChunkAddFactor_) < maxChunks;
+		chunk_index = atomicAdd(next_free_chunk, (QUEUECHUNK ? 1 : ChunkAddFactor_));
+		chunk_locator->initChunkIndex(chunk_index);
+		return (chunk_index + (QUEUECHUNK ? 1 : ChunkAddFactor_)) < maxChunks;
 
 		#else
 
 		chunk_index = *next_free_chunk;
-		*next_free_chunk += ChunkAddFactor_;
-		return (chunk_index + ChunkAddFactor_) < maxChunks;
+		*next_free_chunk += (QUEUECHUNK ? 1 : ChunkAddFactor_);
+		return (chunk_index + (QUEUECHUNK ? 1 : ChunkAddFactor_)) < maxChunks;
 
 		#endif
 	}
@@ -162,6 +167,7 @@ struct OuroborosPages : OuroborosBase
 
 	// #################################################################################################
 	// Functionality
+	template <bool QUEUECHUNK = false>
 	__forceinline__ __device__ bool allocateChunk(index_t& chunk_index)
 	{
 		#ifdef __CUDA_ARCH__
@@ -172,14 +178,15 @@ struct OuroborosPages : OuroborosBase
 		{
 			return true;
 		}
-		chunk_index = atomicAdd(next_free_chunk, ChunkAddFactor_);
-		return (chunk_index + ChunkAddFactor_) < maxChunks;
+		chunk_index = atomicAdd(next_free_chunk, (QUEUECHUNK ? 1 : ChunkAddFactor_));
+		chunk_locator->initChunkIndex(chunk_index);
+		return (chunk_index + (QUEUECHUNK ? 1 : ChunkAddFactor_)) < maxChunks;
 
 		#else
 
 		chunk_index = *next_free_chunk;
-		*next_free_chunk += ChunkAddFactor_;
-		return (chunk_index + ChunkAddFactor_) < maxChunks;
+		*next_free_chunk += (QUEUECHUNK ? 1 : ChunkAddFactor_);
+		return (chunk_index + (QUEUECHUNK ? 1 : ChunkAddFactor_)) < maxChunks;
 
 		#endif
 	}
@@ -218,7 +225,6 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 	Memory memory;
 	ConcreteOuroboros memory_manager;
 	Next next_memory_manager;
-	ChunkLocator chunk_locator;
 
 	bool initialized{false};
 	Statistics stats;
@@ -283,6 +289,7 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 		memory_manager.start_index = memory->start_index;
 		memory_manager.next_free_chunk = &(memory->next_free_chunk);
 		memory_manager.maxChunks = memory->maxChunks;
+		memory_manager.chunk_locator = &(memory->chunk_locator);
 		next_memory_manager.setMemory(memory);
 	}
 

@@ -16,7 +16,7 @@ __forceinline__ __device__ void PageQueueVL<CHUNK_TYPE>::init(MemoryManagerType*
 	{
 		// Allocate 1 chunk per queue in the beginning
 		index_t chunk_index{0};
-		memory_manager->allocateChunk(chunk_index);
+		memory_manager->allocateChunk<true>(chunk_index);
 		auto queue_chunk = QueueChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, 0);
 
 		if(printDebug)
@@ -76,7 +76,7 @@ __forceinline__ __device__ void* PageQueueVL<CHUNK_TYPE>::allocPage(MemoryManage
 
 	semaphore.wait(1, pages_per_chunk, [&]()
 	{
-		if (!memory_manager->allocateChunk(chunk_index))
+		if (!memory_manager->allocateChunk<false>(chunk_index))
 	 		printf("TODO: Could not allocate chunk!!!\n");
 
 	 	ChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, pages_per_chunk);

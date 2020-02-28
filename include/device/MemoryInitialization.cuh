@@ -92,6 +92,7 @@ template <typename OUROBOROS>
 __global__ void d_initializeOuroborosQueues(OUROBOROS* ouroboros)
 {
 	// Template-recursive to initialize queues
+	ouroboros->memory.chunk_locator.init(ouroboros->memory.maxChunks);
 	ouroboros->initQueues();
 }
 
@@ -145,7 +146,8 @@ void Ouroboros<OUROBOROS, OUROBOROSES...>::initialize(size_t additionalSizeBegin
 	auto difference = Ouro::alignment<size_t>(ALLOCATION_SIZE, ChunkBase::size()) - total_required_size;
 	memory.maxChunks = difference / ChunkBase::size();
 	memory.adjacencysize = Ouro::alignment<uint64_t>(memory.maxChunks * ChunkBase::size());
-	memory.allocationSize = Ouro::alignment<uint64_t>(total_required_size + memory.adjacencysize, ChunkBase::size());
+	size_t chunk_locator_size = Ouro::alignment<size_t>(ChunkLocator::size(memory.maxChunks), ChunkBase::size());
+	memory.allocationSize = Ouro::alignment<uint64_t>(total_required_size + memory.adjacencysize + chunk_locator_size, ChunkBase::size());
 	memory.start_index = memory.maxChunks - 1;
 	memory.additionalSizeBeginning = additionalSizeBeginning;
 	memory.additionalSizeEnd = additionalSizeEnd;
@@ -166,6 +168,10 @@ void Ouroboros<OUROBOROS, OUROBOROSES...>::initialize(size_t additionalSizeBegin
 
 	// Update pointers on host
 	updateMemoryManagerHost(*this);
+
+	// Place chunk locator
+	memory.d_data_end -= chunk_locator_size;
+	memory.chunk_locator.d_chunk_flags = reinterpret_cast<int*>(memory.d_data_end);
 
 	// Lets distribute this pointer to the memory managers
 	initMemoryManagers();

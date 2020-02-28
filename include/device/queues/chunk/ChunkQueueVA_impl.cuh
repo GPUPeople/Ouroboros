@@ -22,7 +22,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::init(MemoryManagerType
 	{
 		// Allocate 1 chunk per queue in the beginning
 		index_t chunk_index{0};
-		memory_manager->allocateChunk(chunk_index);
+		memory_manager->allocateChunk<true>(chunk_index);
 		auto chunk = QueueChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, 0);
 		queue_[0] = chunk_index;
 	}
@@ -65,7 +65,7 @@ __forceinline__ __device__ bool ChunkQueueVA<CHUNK_TYPE>::enqueueInitialChunk(Me
 
 	// Allocate one additional queue chunk
 	index_t new_chunk_index{ 0 };
-	memory_manager->allocateChunk(new_chunk_index);
+	memory_manager->allocateChunk<true>(new_chunk_index);
 	QueueChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, new_chunk_index, QueueChunkType::num_spots_);
 	queue_[1] = new_chunk_index;
 	return true;
@@ -85,7 +85,7 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 
 	semaphore.wait(1, pages_per_chunk, [&]()
 	{
-		if (!memory_manager->allocateChunk(chunk_index))
+		if (!memory_manager->allocateChunk<false>(chunk_index))
 			printf("TODO: Could not allocate chunk!!!\n");
 
 		ChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, pages_per_chunk, pages_per_chunk);
@@ -224,7 +224,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerT
 	{
 		unsigned int chunk_index{ 0 };
 		// We pre-emptively allocate the next chunk already
-		memory_manager->allocateChunk(chunk_index);
+		memory_manager->allocateChunk<true>(chunk_index);
 		QueueChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, virtual_pos + QueueChunkType::num_spots_);
 
 		__threadfence_block();

@@ -145,7 +145,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueue(MemoryManagerType
 		{
 			// We pre-emptively allocate the next chunk already
 			unsigned int chunk_index{ 0 };
-			memory_manager->allocateChunk(chunk_index);
+			memory_manager->allocateChunk<true>(chunk_index);
 
 			if(printDebug)
 				printf("E - %d : %d Allocate a new chunk for queue with index: %u and virtual pos: %u\n", threadIdx.x, blockIdx.x, chunk_index, position);
@@ -199,7 +199,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueueChunk(MemoryManage
 		{
 			// In this case we are either directly the first on a chunk or we will wrap onto the new chunk and then be first
 			// In either case, pre-allocate a new chunk here
-			memory_manager->allocateChunk(queue_chunk_index);
+			memory_manager->allocateChunk<true>(queue_chunk_index);
 
 			if(printDebug)
 				printf("EC - %d : %d Allocate a new chunk for queue with index: %u and virtual pos: %u\n", threadIdx.x, blockIdx.x, queue_chunk_index, (local_position == 0) ? (position + num_spots_) : (position + num_spots_ + (num_spots_ - local_position)) );

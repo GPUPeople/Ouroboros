@@ -88,7 +88,7 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 	// Try to allocate a chunk
 	semaphore.wait(1, pages_per_chunk, [&]()
 	{
-		if (!memory_manager->allocateChunk(chunk_index))
+		if (!memory_manager->allocateChunk<false>(chunk_index))
 		{
 			if (!FINAL_RELEASE)
 				printf("TODO: Could not allocate chunk!!!\n");
