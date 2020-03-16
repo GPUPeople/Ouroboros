@@ -20,7 +20,6 @@ struct ChunkLocator
 	 *	\param[in]	chunk_index		Which chunk to set */
 	__device__ __forceinline__ void initChunkIndex(unsigned int chunk_index)
 	{
-		printf("Set Chunk Index bit: %u\n", chunk_index);
 		atomicOr(&d_chunk_flags[chunk_index >> division_factor], 1 << Ouro::modPower2<num_bits>(chunk_index));
 	}
 
