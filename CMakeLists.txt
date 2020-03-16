@@ -11,11 +11,6 @@ option(TEST_VAC "Test Chunk-Based VA" True)
 option(TEST_VLC "Test Chunk-Based VL" True)
 
 ##########################################################################
-# Include Directories
-include_directories(include ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-include_directories(include)
-
-##########################################################################
 # Executables
 ##########################################################################
 
@@ -77,6 +72,7 @@ add_executable(main_p
 	${OUROBOROSHEADERS}
 )
 target_compile_definitions(main_p PUBLIC TEST_PAGES)
+target_include_directories(main_p PUBLIC include ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
 if(TEST_C)
@@ -85,6 +81,7 @@ add_executable(main_c
 	${OUROBOROSHEADERS}
 )
 target_compile_definitions(main_c PUBLIC TEST_CHUNKS)
+target_include_directories(main_c PUBLIC include ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
 if(TEST_VAP)
@@ -93,6 +90,7 @@ add_executable(va_main_p
 	${OUROBOROSHEADERS}
 )
 target_compile_definitions(va_main_p PUBLIC TEST_PAGES TEST_VIRTUALARRAY)
+target_include_directories(va_main_p PUBLIC include ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
 if(TEST_VAC)
@@ -101,6 +99,7 @@ add_executable(va_main_c
 	${OUROBOROSHEADERS}
 )
 target_compile_definitions(va_main_c PUBLIC TEST_CHUNKS TEST_VIRTUALARRAY)
+target_include_directories(va_main_c PUBLIC include ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
 if(TEST_VLP)
@@ -109,6 +108,7 @@ add_executable(vl_main_p
 	${OUROBOROSHEADERS}
 )
 target_compile_definitions(vl_main_p PUBLIC TEST_PAGES TEST_VIRTUALLIST)
+target_include_directories(vl_main_p PUBLIC include ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
 if(TEST_VLC)
@@ -117,4 +117,5 @@ add_executable(vl_main_c
 	${OUROBOROSHEADERS}
 )
 target_compile_definitions(vl_main_c PUBLIC TEST_CHUNKS TEST_VIRTUALLIST)
+target_include_directories(vl_main_c PUBLIC include ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()

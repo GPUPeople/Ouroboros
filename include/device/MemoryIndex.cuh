@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Parameters.h"
+#include "Definitions.h"
 
 struct MemoryIndex
 {

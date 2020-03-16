@@ -1,5 +1,7 @@
 #pragma once
 #include "Parameters.h"
+#include "Definitions.h"
+#include "device/Ouroboros.cuh"
 
 // ##############################################################################################################################################
 //
@@ -66,7 +68,7 @@ __global__ void d_printFreeResources(OUROBOROS* ouroboros)
 		return;
 
 	// Template-recursive give all memory managers the same pointer
-	ouroboros->template d_printResources();
+	ouroboros->d_printResources();
 }
 
 template<class OUROBOROS, class... OUROBOROSES>

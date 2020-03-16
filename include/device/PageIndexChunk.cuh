@@ -21,7 +21,7 @@ struct PageChunk : public CommonChunk
 
 	__forceinline__ __device__ __host__ void* getPage(memory_t* memory, index_t chunk_index, uint32_t page_index)
 	{
-		return reinterpret_cast<memory_t>(Base::getData(memory, chunk_index)) + (page_index * page_size);
+		return reinterpret_cast<void*>(reinterpret_cast<memory_t*>(Base::getData(memory, chunk_index)) + (page_index * page_size));
 	}
 
 	// ##########################################################################################################################
