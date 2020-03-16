@@ -5,6 +5,8 @@
 #include "InstanceDefinitions.cuh"
 #include "Utility.h"
 
+#define TEST_MULTI
+
 template <typename MemoryManagerType>
 __global__ void d_testAllocation(MemoryManagerType* mm, int** verification_ptr, int num_allocations, int allocation_size)
 {
@@ -26,6 +28,23 @@ __global__ void d_testWriteToMemory(int** verification_ptr, int num_allocations,
 	for(auto i = 0; i < (allocation_size / sizeof(int)); ++i)
 	{
 		ptr[i] = tid;
+	}
+}
+
+__global__ void d_testReadFromMemory(int** verification_ptr, int num_allocations, int allocation_size)
+{
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	if(tid >= num_allocations)
+		return;
+	
+	auto ptr = verification_ptr[tid];
+
+	for(auto i = 0; i < (allocation_size / sizeof(int)); ++i)
+	{
+		if(ptr[i] != tid)
+		{
+			printf("%d - %d | We got a wrong value here! %d vs %d\n", threadIdx.x, blockIdx.x, ptr[i], tid);
+		}
 	}
 }
 
@@ -54,38 +73,56 @@ int main(int argc, char* argv[])
 		}
 	}
 	allocation_size_byte = Ouro::alignment(allocation_size_byte, sizeof(int));
-	std::cout << "Number of Allocations: " << num_allocations << " | Allocation Size: " << allocation_size_byte << std::endl;
+	std::cout << "Number of Allocations: " << num_allocations << " | Allocation Size: " << allocation_size_byte << " | Iterations: " << num_iterations << std::endl;
 
 	#ifdef TEST_PAGES
 
 	#ifdef TEST_VIRTUALARRAY
 	std::cout << "Testing page-based memory manager - Virtualized Array!\n";
+	#ifndef TEST_MULTI
 	using MemoryManagerType = OuroVAPQ;
-	// using MemoryManagerType = MultiOuroVAPQ;
+	#else
+	using MemoryManagerType = MultiOuroVAPQ;
+	#endif
 	#elif TEST_VIRTUALLIST
 	std::cout << "Testing page-based memory manager - Virtualized List!\n";
+	#ifndef TEST_MULTI
 	using MemoryManagerType = OuroVLPQ;
-	// using MemoryManagerType = MultiOuroVLPQ;
+	#else
+	using MemoryManagerType = MultiOuroVLPQ;
+	#endif
 	#else
 	std::cout << "Testing page-based memory manager - Standard!\n";
+	#ifndef TEST_MULTI
 	using MemoryManagerType = OuroPQ;
-	// using MemoryManagerType = MultiOuroPQ;
+	#else
+	using MemoryManagerType = MultiOuroPQ;
+	#endif
 	#endif
 
 	#elif TEST_CHUNKS
 
 	#ifdef TEST_VIRTUALARRAY
 	std::cout << "Testing chunk-based memory manager - Virtualized Array!\n";
+	#ifndef TEST_MULTI
 	using MemoryManagerType = OuroVACQ;
-	// using MemoryManagerType = MultiOuroVACQ;
+	#else
+	using MemoryManagerType = MultiOuroVACQ;
+	#endif
 	#elif TEST_VIRTUALLIST
 	std::cout << "Testing chunk-based memory manager - Virtualized List!\n";
+	#ifndef TEST_MULTI
 	using MemoryManagerType = OuroVLCQ;
-	// using MemoryManagerType = MultiOuroVLCQ;
+	#else
+	using MemoryManagerType = MultiOuroVLCQ;
+	#endif
 	#else
 	std::cout << "Testing chunk-based memory manager - Standard!\n";
+	#ifndef TEST_MULTI
 	using MemoryManagerType = OuroCQ;
-	// using MemoryManagerType = MultiOuroCQ;
+	#else
+	using MemoryManagerType = MultiOuroCQ;
+	#endif
 	#endif
 
 	#endif
@@ -110,6 +147,10 @@ int main(int argc, char* argv[])
 		HANDLE_ERROR(cudaDeviceSynchronize());
 
 		d_testWriteToMemory<<<gridSize, blockSize>>>(d_memory, num_allocations, allocation_size_byte);
+
+		HANDLE_ERROR(cudaDeviceSynchronize());
+
+		d_testReadFromMemory<<<gridSize, blockSize>>>(d_memory, num_allocations, allocation_size_byte);
 
 		HANDLE_ERROR(cudaDeviceSynchronize());
 

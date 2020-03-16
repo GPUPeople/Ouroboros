@@ -22,7 +22,7 @@ __forceinline__ __device__ void PageQueueVA<CHUNK_TYPE>::init(MemoryManagerType*
 		// Allocate 1 chunk per queue in the beginning
 		index_t chunk_index{0};
 		memory_manager->allocateChunk<true>(chunk_index);
-		auto chunk = QueueChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, 0);
+		auto chunk = QueueChunkType::initializeChunk(memory_manager->d_data, chunk_index, 0);
 		queue_[0] = chunk_index;
 	}
 }
@@ -45,7 +45,7 @@ __forceinline__ __device__ bool PageQueueVA<CHUNK_TYPE>::enqueueChunk(MemoryMana
 			// We have to pre-allocate a new chunk for the queue here
 			unsigned int new_queue_index{0U};
 			memory_manager->allocateChunk<true>(new_queue_index);
-			QueueChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, new_queue_index, virtual_pos + QueueChunkType::num_spots_ + ((position != 0) ? (QueueChunkType::num_spots_ - position) : 0));
+			QueueChunkType::initializeChunk(memory_manager->d_data, new_queue_index, virtual_pos + QueueChunkType::num_spots_ + ((position != 0) ? (QueueChunkType::num_spots_ - position) : 0));
 
 			// Please do not re-order here
 			__threadfence_block();
@@ -108,7 +108,7 @@ __forceinline__ __device__ bool PageQueueVA<CHUNK_TYPE>::enqueueInitialChunk(Mem
 			// We have to allocate a new chunk for the queue here
 			unsigned int new_queue_index{0U};
 			memory_manager->allocateChunk<true>(new_queue_index);
-			auto testchunk = QueueChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, new_queue_index, virtual_pos + QueueChunkType::num_spots_);
+			auto testchunk = QueueChunkType::initializeChunk(memory_manager->d_data, new_queue_index, virtual_pos + QueueChunkType::num_spots_);
 			
 			// Please do not re-order here
 			__threadfence_block();
@@ -116,7 +116,7 @@ __forceinline__ __device__ bool PageQueueVA<CHUNK_TYPE>::enqueueInitialChunk(Mem
 			queue_[(chunk_id + 1) % size_] = new_queue_index;
 		}
 
-		auto chunk = QueueChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, queue_[chunk_id]);
+		auto chunk = QueueChunkType::getAccess(memory_manager->d_data, queue_[chunk_id]);
 		chunk->enqueueInitial(virtual_pos % QueueChunkType::num_spots_, MemoryIndex::createIndex(chunk_index, i));
 	}
 
@@ -141,7 +141,7 @@ __forceinline__ __device__ void* PageQueueVA<CHUNK_TYPE>::allocPage(MemoryManage
 		if (!memory_manager->allocateChunk<true>(chunk_index))
 	 		printf("TODO: Could not allocate chunk!!!\n");
 
-	 	ChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, pages_per_chunk);
+	 	ChunkType::initializeChunk(memory_manager->d_data, chunk_index, pages_per_chunk);
 		__threadfence();
 	 	enqueueChunk(memory_manager, chunk_index, pages_per_chunk);
 	});
@@ -159,12 +159,12 @@ __forceinline__ __device__ void* PageQueueVA<CHUNK_TYPE>::allocPage(MemoryManage
 		index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
 		if(printDebug)
 			printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, chunk_id, chunk->virtual_start_);
-		//memory_manager->d_chunk_reuse_queue.enqueueClean(reusable_chunk_id, Chunk::template getData<index_t>(memory_manager->d_data, memory_manager->start_index, reusable_chunk_id));
+		//memory_manager->d_chunk_reuse_queue.enqueueClean(reusable_chunk_id, Chunk::template getData<index_t>(memory_manager->d_data, reusable_chunk_id));
 		memory_manager->d_chunk_reuse_queue.enqueue(reusable_chunk_id);
 	}
 
 	chunk_index = index.getChunkIndex();
-	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, index.getPageIndex(), page_size_);
+	return ChunkType::getPage(memory_manager->d_data, chunk_index, index.getPageIndex(), page_size_);
 }
 
 // ##############################################################################################################################################
@@ -180,8 +180,8 @@ __forceinline__ __device__ void PageQueueVA<CHUNK_TYPE>::freePage(MemoryManagerT
 		__trap(); //no space to enqueue -> fail
 	}
 
-	unsigned int chunk_index, page_index;
-	index.getIndex(chunk_index, page_index);
+	// unsigned int chunk_index, page_index;
+	// index.getIndex(chunk_index, page_index);
 	enqueue(memory_manager, index.index);
 }
 
@@ -200,7 +200,7 @@ __forceinline__ __device__ void PageQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerTy
 		unsigned int chunk_index{ 0 };
 		// We pre-emptively allocate the next chunk already
 		memory_manager->allocateChunk<false>(chunk_index);
-		QueueChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, virtual_pos + QueueChunkType::num_spots_);
+		QueueChunkType::initializeChunk(memory_manager->d_data, chunk_index, virtual_pos + QueueChunkType::num_spots_);
 
 		__threadfence();
 
@@ -233,7 +233,7 @@ __forceinline__ __device__ QueueChunk<typename CHUNK_TYPE::Base>* PageQueueVA<CH
 		Ouro::sleep(counter++);
 	}
 
-	auto queue_chunk = QueueChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, queue_chunk_index);
+	auto queue_chunk = QueueChunkType::getAccess(memory_manager->d_data, queue_chunk_index);
 	if(!queue_chunk->checkVirtualStart(v_position))
 	{
 		if (!FINAL_RELEASE)

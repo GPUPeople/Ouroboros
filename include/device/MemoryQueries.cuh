@@ -20,7 +20,7 @@ __forceinline__ __device__ void OuroborosChunks<QUEUE_TYPE, CHUNK_BASE, SMALLEST
 	printf("-----------------------------------\nNumber of Chunks Overall: %6u\n-----------------------------------\n", *next_free_chunk - d_chunk_reuse_queue.count_);
 	for(auto i = 0; i < *(next_free_chunk); ++i)
 	{
-		auto chunk = ChunkType::getAccess(d_data, start_index, i);
+		auto chunk = ChunkType::getAccess(d_data, i);
 		const auto identifier = *reinterpret_cast<unsigned int*>(chunk);
 		if(identifier == CHUNK_IDENTIFIER)
 		{

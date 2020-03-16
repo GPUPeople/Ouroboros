@@ -9,7 +9,7 @@ struct ChunkAccess
 {
 	static constexpr size_t Chunk_Size_{SIZE};
 	static constexpr size_t smallest_page_size_{SMALLEST_PAGE};
-	static constexpr unsigned int MaximumBitMaskSize_{static_cast<unsigned int>(Chunk_Size_ / (smallest_page_size_ * sizeof(uint64_t) * BYTE_SIZE))};
+	static constexpr unsigned int MaximumBitMaskSize_{Ouro::divup<unsigned int>(Chunk_Size_, smallest_page_size_ * sizeof(uint64_t) * BYTE_SIZE)};
 
 	enum class Mode
 	{

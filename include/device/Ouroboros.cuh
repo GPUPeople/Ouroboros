@@ -11,7 +11,6 @@ struct Memory
 	memory_t* d_memory{ nullptr };
 	memory_t* d_data{ nullptr };
 	memory_t* d_data_end{ nullptr };
-	uint64_t start_index;
 	index_t next_free_chunk{ 0 };
 
 	size_t maxChunks{ 0 };
@@ -28,7 +27,6 @@ struct OuroborosBase
 	// Data
 	memory_t* d_memory{ nullptr };
 	memory_t* d_data{ nullptr };
-	uint64_t start_index;
 	index_t* next_free_chunk{ nullptr };
 	size_t maxChunks{ 0 };
 	ChunkLocator* chunk_locator{nullptr};
@@ -240,13 +238,16 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 
 	__forceinline__ __device__ void* malloc(size_t size);
 
-	__forceinline__ __device__ void free(void* adjacency);
+	__forceinline__ __device__ void free(void* ptr);
 
 	__forceinline__ __device__ void freePageRecursive(unsigned int page_size, MemoryIndex index);
 
 	__forceinline__ __device__ void enqueueInitialChunk(index_t queue_index, index_t chunk_index, int available_pages, index_t pages_per_chunk)
 	{
 		// TODO: This should later relay to the correct mem man
+		printf("This should relay to the correct memory manager!\n");
+		__trap();
+
 		memory_manager.d_storage_reuse_queue[queue_index].enqueueInitialChunk(&memory_manager, chunk_index, available_pages, pages_per_chunk);
 	}
 
@@ -286,7 +287,6 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 	{
 		memory_manager.d_memory = memory->d_memory;
 		memory_manager.d_data = memory->d_data;
-		memory_manager.start_index = memory->start_index;
 		memory_manager.next_free_chunk = &(memory->next_free_chunk);
 		memory_manager.maxChunks = memory->maxChunks;
 		memory_manager.chunk_locator = &(memory->chunk_locator);
@@ -318,23 +318,26 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 		template <typename DataType>
 		DataType* getMemoryInBytes(size_t num_Bytes)
 		{
-			auto ret_val = reinterpret_cast<DataType*>(d_memory);
-			d_memory += num_Bytes;
+			d_memory -= num_Bytes;
 			allocated_size += num_Bytes;
-			return ret_val;
+			return reinterpret_cast<DataType*>(d_memory);
 		}
 
 		template <typename DataType>
 		DataType* getMemoryInItems(size_t num_Items)
 		{
-			auto ret_val = reinterpret_cast<DataType*>(d_memory);
-			d_memory += num_Items * sizeof(DataType);
+			d_memory -= num_Items * sizeof(DataType);
 			allocated_size += num_Items * sizeof(DataType);
-			return ret_val;
+			return reinterpret_cast<DataType*>(d_memory);
 		}
 	};
 
-	HeapAllocator createHeapAllocator(unsigned int offset_in_bytes = 0) {return HeapAllocator(memory.d_data + memory.additionalSizeBeginning + Ouro::alignment<size_t>(offset_in_bytes));}
+	HeapAllocator createHeapAllocator(unsigned int offset_in_bytes = 0)
+	{
+		printf("Not implemented correctly yet!\n");
+		exit(-1);
+		return HeapAllocator(memory.d_data_end);
+	}
 };
 
 template <>
@@ -346,7 +349,7 @@ struct Ouroboros<>
 	__forceinline__ __device__ void* malloc(size_t size)
 	{
 	#ifdef __CUDA_ARCH__
-		return malloc(AllocationHelper::getNextPow2(size));
+		return ::malloc(AllocationHelper::getNextPow2(size));
 	#else
 		return nullptr;
 	#endif

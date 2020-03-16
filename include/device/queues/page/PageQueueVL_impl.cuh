@@ -17,7 +17,7 @@ __forceinline__ __device__ void PageQueueVL<CHUNK_TYPE>::init(MemoryManagerType*
 		// Allocate 1 chunk per queue in the beginning
 		index_t chunk_index{0};
 		memory_manager->allocateChunk<true>(chunk_index);
-		auto queue_chunk = QueueChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, 0);
+		auto queue_chunk = QueueChunkType::initializeChunk(memory_manager->d_data, chunk_index, 0);
 
 		if(printDebug)
 			printf("Allocate a new chunk for the queue %u with index: %u : ptr: %p\n",queue_index_, chunk_index, queue_chunk);
@@ -79,7 +79,7 @@ __forceinline__ __device__ void* PageQueueVL<CHUNK_TYPE>::allocPage(MemoryManage
 		if (!memory_manager->allocateChunk<false>(chunk_index))
 	 		printf("TODO: Could not allocate chunk!!!\n");
 
-	 	ChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, pages_per_chunk);
+	 	ChunkType::initializeChunk(memory_manager->d_data, chunk_index, pages_per_chunk);
 		__threadfence();
 	 	enqueueChunk(memory_manager, chunk_index, pages_per_chunk);
 	});
@@ -90,7 +90,7 @@ __forceinline__ __device__ void* PageQueueVL<CHUNK_TYPE>::allocPage(MemoryManage
 	front_ptr_->template dequeue<QueueChunkType::DEQUEUE_MODE::DEQUEUE>(memory_manager, virtual_pos, index.index, &front_ptr_, &old_ptr_, &old_count_);
 
 	chunk_index = index.getChunkIndex();
-	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, index.getPageIndex(), page_size_);
+	return ChunkType::getPage(memory_manager->d_data, chunk_index, index.getPageIndex(), page_size_);
 }
 
 // ##############################################################################################################################################

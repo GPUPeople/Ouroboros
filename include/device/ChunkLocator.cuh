@@ -20,7 +20,8 @@ struct ChunkLocator
 	 *	\param[in]	chunk_index		Which chunk to set */
 	__device__ __forceinline__ void initChunkIndex(unsigned int chunk_index)
 	{
-		auto ret_val = atomicOr(&d_chunk_flags[chunk_index >> division_factor], 1 << Ouro::modPower2<num_bits>(chunk_index));
+		printf("Set Chunk Index bit: %u\n", chunk_index);
+		atomicOr(&d_chunk_flags[chunk_index >> division_factor], 1 << Ouro::modPower2<num_bits>(chunk_index));
 	}
 
 	/*!	\brief						Given a potential chunk_index, check if it is a correct index, otherwise search lower until we find one
@@ -29,10 +30,12 @@ struct ChunkLocator
 	__device__ __forceinline__ unsigned int getChunkIndex(unsigned int chunk_index)
 	{
 		auto index = chunk_index >> division_factor; // Get index position
+		// printf("%d - %d | Chunk_Index: %u - Index: %u\n", threadIdx.x, blockIdx.x, chunk_index, index);
 		auto mask = (1U << (Ouro::modPower2<num_bits>(chunk_index) + 1)) - 1; // Only look at the bits from the index position down so we can use built-ins
 		while(true)
 		{
 			auto local_index = num_bits - __clz(d_chunk_flags[index] & mask); // Find the first bit set from the top down
+			// printf("%d - %d | Local Index: %u\n", threadIdx.x, blockIdx.x, local_index - 1);
 			if(local_index)
 				return (index << division_factor) + (local_index - 1); // Index is 1-based (0 would mean nothing found)
 

@@ -94,7 +94,7 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 				printf("TODO: Could not allocate chunk!!!\n");
 		}
 
-	 	chunk = ChunkType::initializeEmptyChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, pages_per_chunk);
+	 	chunk = ChunkType::initializeEmptyChunk(memory_manager->d_data, chunk_index, pages_per_chunk);
 		 // Please do NOT reorder here
 		__threadfence_block();
 	 	enqueueChunk(chunk_index, pages_per_chunk, chunk);
@@ -106,7 +106,7 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 		chunk_index = Ouro::ldg_cg(&queue_[Ouro::modPower2<size_>(current_front)]);
 		if(chunk_index != DeletionMarker<index_t>::val)
 		{
-			chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, chunk_index);
+			chunk = ChunkType::getAccess(memory_manager->d_data, chunk_index);
 			const auto mode = chunk->access.allocPage(page_index);
 			if (mode == ChunkType::ChunkAccessType::Mode::SUCCESSFULL)
 				break;
@@ -126,7 +126,7 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 				// 	chunk_index = Ouro::ldg_cg(&queue_[Ouro::modPower2<size_>(++current_front)]);
 				// 	if(chunk_index != DeletionMarker<index_t>::val)
 				// 	{
-				// 		chunk = Chunk::getAccess(memory_manager->d_data, memory_manager->start_index, chunk_index);
+				// 		chunk = Chunk::getAccess(memory_manager->d_data, chunk_index);
 				// 		if(chunk->access.count != 0)
 				// 		{
 				// 			break;
@@ -163,7 +163,7 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 		}
 	}
 	
-	return chunk->getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index, page_size_);
+	return chunk->getPage(memory_manager->d_data, chunk_index, page_index, page_size_);
 }
 
 // ##############################################################################################################################################
@@ -172,7 +172,7 @@ template <typename ChunkType>
 template <typename MemoryManagerType>
 __forceinline__ __device__ void ChunkQueue<ChunkType>::freePage(MemoryManagerType* memory_manager, MemoryIndex index)
 {
-	auto chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, index.getChunkIndex());
+	auto chunk = ChunkType::getAccess(memory_manager->d_data, index.getChunkIndex());
 	auto mode = chunk->access.freePage(index.getPageIndex());
 	if(mode == ChunkType::ChunkAccessType::FreeMode::FIRST_FREE)
 	{

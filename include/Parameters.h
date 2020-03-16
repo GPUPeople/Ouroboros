@@ -47,7 +47,7 @@ static constexpr bool printStats{ statistics_enabled && true };
 static constexpr bool turnOnProgressBar{!turn_off_all_print_output && true};
 
 // Heap Size
-static constexpr size_t cuda_heap_size {50ULL * 1024ULL * 1024ULL};
+static constexpr size_t cuda_heap_size {500ULL * 1024ULL * 1024ULL};
 static constexpr size_t cuda_mallocator_heap_size {2048ULL * 1024ULL * 1024ULL};
 //static constexpr size_t cuda_mallocator_heap_size {50ULL * 1024ULL * 1024ULL};
 static constexpr bool testCUDA{false};

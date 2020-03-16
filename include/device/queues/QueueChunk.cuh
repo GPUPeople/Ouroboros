@@ -201,23 +201,23 @@ struct QueueChunk : public CommonChunk
 
 	// ##############################################################################################################################################
 	// 
-	static __forceinline__ __device__ __host__ QueueChunk* getAccess(memory_t* memory, uint64_t start_index, index_t chunk_index)
+	static __forceinline__ __device__ __host__ QueueChunk* getAccess(memory_t* memory, index_t chunk_index)
 	{
-		return reinterpret_cast<QueueChunk*>(Base::getMemoryAccess(memory, start_index, chunk_index));
+		return reinterpret_cast<QueueChunk*>(Base::getMemoryAccess(memory, chunk_index)); 
 	}
 
 	// ##############################################################################################################################################
 	// 
-	static __forceinline__ __device__ __host__ QueueDataType* getData(memory_t* memory, uint64_t start_index, index_t chunk_index)
+	static __forceinline__ __device__ __host__ QueueDataType* getData(memory_t* memory, index_t chunk_index)
 	{
-		return reinterpret_cast<QueueDataType*>((&memory[(start_index - chunk_index) * Base::size()] + CHUNK_METADATA_SIZE));
+		return reinterpret_cast<QueueDataType*>(Base::getData(memory, chunk_index));
 	}
 
 	// ##############################################################################################################################################
 	// 
-	static __forceinline__ __device__ __host__ QueueChunk* initializeChunk(memory_t* memory, uint64_t start_index, index_t chunk_index, unsigned int virtual_start)
+	static __forceinline__ __device__ __host__ QueueChunk* initializeChunk(memory_t* memory, index_t chunk_index, unsigned int virtual_start)
 	{
 		static_assert(Ouro::alignment(sizeof(QueueChunk)) <= CHUNK_METADATA_SIZE, "QueueChunk is larger than alignment!");
-		return new(reinterpret_cast<char*>(getAccess(memory, start_index, chunk_index))) QueueChunk(getData(memory, start_index, chunk_index), chunk_index, virtual_start);
+		return new(reinterpret_cast<char*>(getAccess(memory, chunk_index))) QueueChunk(getData(memory, chunk_index), chunk_index, virtual_start);
 	}
 };

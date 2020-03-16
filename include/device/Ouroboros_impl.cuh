@@ -34,7 +34,7 @@ __forceinline__ __device__ void OuroborosChunks<QUEUE_TYPE, CHUNK_BASE, SMALLEST
 		atomicAdd(&stats.pageFreeCount, 1);
 
 	// Deallocate page in chunk
-	d_storage_reuse_queue[QueueType::ChunkType::template getQueueIndexFromPage<QI>(d_data, start_index, index.getChunkIndex())].freePage(this, index);
+	d_storage_reuse_queue[QueueType::ChunkType::template getQueueIndexFromPage<QI>(d_data, index.getChunkIndex())].freePage(this, index);
 }
 
 // ##############################################################################################################################################
@@ -67,7 +67,7 @@ __forceinline__ __device__ void OuroborosPages<QUEUE_TYPE, CHUNK_BASE, SMALLEST_
 		atomicAdd(&stats.pageFreeCount, 1);
 
 	// Deallocate page in chunk
-	d_storage_reuse_queue[QueueType::ChunkType::template getQueueIndexFromPage<QI>(d_data, start_index, index.getChunkIndex())].freePage(this, index);
+	d_storage_reuse_queue[QueueType::ChunkType::template getQueueIndexFromPage<QI>(d_data, index.getChunkIndex())].freePage(this, index);
 }
 
 // ##############################################################################################################################################
@@ -99,21 +99,17 @@ __forceinline__ __device__ void Ouroboros<OUROBOROS, OUROBOROSES...>::free(void*
 	{
 		if(printDebug)
 			printf("Freeing CUDA Memory!\n");
-		free(ptr);
+		::free(ptr);
 		return;
 	}
-	auto chunk_index = ChunkBase::getIndexFromPointer(memory.d_data, memory.start_index, ptr);
+	auto chunk_index = ChunkBase::getIndexFromPointer(memory.d_data, ptr);
 	auto revised_chunk_index = memory.chunk_locator.getChunkIndex(chunk_index);
-	if(chunk_index != revised_chunk_index)
-	{
-		// TODO: remove
-		printf("Chunk Index is not the same: %u | %u\n", chunk_index, revised_chunk_index);
-		__trap();
-	}
-	auto chunk = reinterpret_cast<CommonChunk*>(ConcreteOuroboros::ChunkBase::getMemoryAccess(memory.d_data, memory.start_index, revised_chunk_index));
+	printf("Chunk-Index %u vs Revised: %u\n", chunk_index, revised_chunk_index);
+	auto chunk = reinterpret_cast<CommonChunk*>(ConcreteOuroboros::ChunkBase::getMemoryAccess(memory.d_data, revised_chunk_index));
 	auto page_size = chunk->page_size;
-	auto index = ChunkBase::getPageIndexFromPointer(memory.d_data, memory.start_index, ptr, page_size);
-	return freePageRecursive(page_size, index);
+	unsigned int page_index = (reinterpret_cast<unsigned long long>(ptr) - reinterpret_cast<unsigned long long>(chunk) - ChunkBase::meta_data_size_) / page_size;
+	printf("%llu - %llu | Chunk-Index: %u | Page-Index: %u\n", reinterpret_cast<unsigned long long>(ptr), reinterpret_cast<unsigned long long>(ptr) - reinterpret_cast<unsigned long long>(memory.d_data), revised_chunk_index, page_index);
+	return freePageRecursive(page_size, MemoryIndex(revised_chunk_index, page_index));
 }
 
 // ##############################################################################################################################################
@@ -165,11 +161,10 @@ Ouroboros<OUROBOROS, OUROBOROSES...>::~Ouroboros()
 {
 	if(printDebug)
 		printf("Ouroboros Destructor called\n");
-	
-	updateMemoryManagerHost(*this);
 
 	if (memory.d_memory != nullptr)
 	{
+		updateMemoryManagerHost(*this);
 		cudaFree(memory.d_memory);
 		memory.d_memory = nullptr;
 		memory.d_data = nullptr;

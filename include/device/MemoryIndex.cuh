@@ -12,6 +12,9 @@ struct MemoryIndex
 	// Data	
 	uint32_t index;
 
+	__device__ MemoryIndex() : index{0U}{}
+	__device__ MemoryIndex(uint32_t chunk_index, uint32_t page_index) : index{(chunk_index << NumBitsForPage) + page_index}{}
+
 	// Methods
 	// ----------------------------------------------------------------------------
 	__device__ __forceinline__ uint32_t getIndex() { return index; }

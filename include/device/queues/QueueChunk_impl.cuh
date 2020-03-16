@@ -150,7 +150,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueue(MemoryManagerType
 			if(printDebug)
 				printf("E - %d : %d Allocate a new chunk for queue with index: %u and virtual pos: %u\n", threadIdx.x, blockIdx.x, chunk_index, position);
 
-			auto potential_next = initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, position + num_spots_);
+			auto potential_next = initializeChunk(memory_manager->d_data, chunk_index, position + num_spots_);
 
 			// Let everyone hear about the joyful news, a new chunk has been born
 			__threadfence();
@@ -205,7 +205,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueueChunk(MemoryManage
 				printf("EC - %d : %d Allocate a new chunk for queue with index: %u and virtual pos: %u\n", threadIdx.x, blockIdx.x, queue_chunk_index, (local_position == 0) ? (position + num_spots_) : (position + num_spots_ + (num_spots_ - local_position)) );
 
 			index_t next_virtual_start{ (local_position == 0) ? (position + num_spots_) : (position + num_spots_ + (num_spots_ - local_position)) };
-			potential_next = initializeChunk(memory_manager->d_data, memory_manager->start_index, queue_chunk_index, next_virtual_start);
+			potential_next = initializeChunk(memory_manager->d_data, queue_chunk_index, next_virtual_start);
 
 			// Let everyone hear about the joyful news, a new chunk has been born
 			__threadfence();
@@ -529,8 +529,8 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::setOldPointer(MemoryManag
 				--free_count;
 
 				if(printDebug)
-					printf("%d - %d Reuse index: %u \n", threadIdx.x, blockIdx.x, ChunkType::Base::getIndexFromPointer(memory_manager->d_data, memory_manager->start_index, current_old_ptr));
-				memory_manager->d_chunk_reuse_queue.enqueue(ChunkType::Base::getIndexFromPointer(memory_manager->d_data, memory_manager->start_index, current_old_ptr));
+					printf("%d - %d Reuse index: %u \n", threadIdx.x, blockIdx.x, ChunkType::Base::getIndexFromPointer(memory_manager->d_data, current_old_ptr));
+				memory_manager->d_chunk_reuse_queue.enqueue(ChunkType::Base::getIndexFromPointer(memory_manager->d_data, current_old_ptr));
 
 				current_old_ptr = reinterpret_cast<QueueChunk<ChunkBase>*>(current_old_ptr->next_);
 			}

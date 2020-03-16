@@ -18,7 +18,7 @@ __forceinline__ __device__ void ChunkQueueVL<CHUNK_TYPE>::init(MemoryManagerType
 		// Allocate 1 chunk per queue in the beginning
 		index_t chunk_index{0};
 		memory_manager->allocateChunk<true>(chunk_index);
-		auto queue_chunk = QueueChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, 0);
+		auto queue_chunk = QueueChunkType::initializeChunk(memory_manager->d_data, chunk_index, 0);
 
 		if(printDebug)
 			printf("Allocate a new chunk for the queue %u with index: %u : ptr: %p\n",queue_index_, chunk_index, queue_chunk);
@@ -75,7 +75,7 @@ __forceinline__ __device__ void* ChunkQueueVL<CHUNK_TYPE>::allocPage(MemoryManag
 		if (!memory_manager->allocateChunk<false>(chunk_index))
 			printf("TODO: Could not allocate chunk!!!\n");
 
-		ChunkType::initializeChunk(memory_manager->d_data, memory_manager->start_index, chunk_index, pages_per_chunk, pages_per_chunk);
+		ChunkType::initializeChunk(memory_manager->d_data, chunk_index, pages_per_chunk, pages_per_chunk);
 		__threadfence();
 		enqueueChunk(memory_manager, chunk_index, pages_per_chunk);
 		__threadfence();
@@ -93,7 +93,7 @@ __forceinline__ __device__ void* ChunkQueueVL<CHUNK_TYPE>::allocPage(MemoryManag
 		// This position might be out-dated already
 		if(chunk_index != DeletionMarker<index_t>::val)
 		{
-			chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, chunk_index);
+			chunk = ChunkType::getAccess(memory_manager->d_data, chunk_index);
 			const auto mode = chunk->access.allocPage(page_index);
 			
 			if (mode == ChunkType::ChunkAccessType::Mode::SUCCESSFULL)
@@ -132,7 +132,7 @@ __forceinline__ __device__ void* ChunkQueueVL<CHUNK_TYPE>::allocPage(MemoryManag
 		}
 	}
 
-	return ChunkType::getPage(memory_manager->d_data, memory_manager->start_index, chunk_index, page_index, page_size_);
+	return ChunkType::getPage(memory_manager->d_data, chunk_index, page_index, page_size_);
 }
 
 // ##############################################################################################################################################
@@ -145,7 +145,7 @@ __forceinline__ __device__ void ChunkQueueVL<CHUNK_TYPE>::freePage(MemoryManager
 
 	uint32_t chunk_index, page_index;
 	index.getIndex(chunk_index, page_index);
-	auto chunk = ChunkType::getAccess(memory_manager->d_data, memory_manager->start_index, index.getChunkIndex());
+	auto chunk = ChunkType::getAccess(memory_manager->d_data, index.getChunkIndex());
 	auto mode = chunk->access.freePage(index.getPageIndex());
 	if(mode == ChunkType::ChunkAccessType::FreeMode::FIRST_FREE)
 	{

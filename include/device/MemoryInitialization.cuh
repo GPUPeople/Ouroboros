@@ -26,7 +26,7 @@ __global__ void d_cleanChunks(MemoryManagerType* memory_manager, unsigned int of
 
 	if(threadIdx.x == 0)
 	{
-		 chunk_data = reinterpret_cast<index_t*>(ChunkType::getMemoryAccess(memory_manager->memory.d_data, memory_manager->memory.start_index, blockIdx.x + offset));
+		 chunk_data = reinterpret_cast<index_t*>(ChunkType::getMemoryAccess(memory_manager->memory.d_data, blockIdx.x + offset));
 	}
 	
 	__syncthreads();
@@ -122,6 +122,12 @@ void Ouroboros<OUROBOROS, OUROBOROSES...>::initialize(size_t additionalSizeBegin
 	// Initialize memory, then call initialize on all instances
 	if (initialized)
 		return;
+	
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize, cuda_heap_size);
+	size_t size;
+	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
+	if(printDebug)
+		printf("Heap Size: ~%llu MB\n", size / (1024 * 1024));
 
 	if(printDebug)
 	{
@@ -148,7 +154,6 @@ void Ouroboros<OUROBOROS, OUROBOROSES...>::initialize(size_t additionalSizeBegin
 	memory.adjacencysize = Ouro::alignment<uint64_t>(memory.maxChunks * ChunkBase::size());
 	size_t chunk_locator_size = Ouro::alignment<size_t>(ChunkLocator::size(memory.maxChunks), ChunkBase::size());
 	memory.allocationSize = Ouro::alignment<uint64_t>(total_required_size + memory.adjacencysize + chunk_locator_size, ChunkBase::size());
-	memory.start_index = memory.maxChunks - 1;
 	memory.additionalSizeBeginning = additionalSizeBeginning;
 	memory.additionalSizeEnd = additionalSizeEnd;
 
