@@ -37,6 +37,9 @@ __global__ void d_testReadFromMemory(int** verification_ptr, int num_allocations
 	if(tid >= num_allocations)
 		return;
 	
+	if(threadIdx.x == 0 && blockIdx.x == 0)
+		printf("Test Read!\n");
+	
 	auto ptr = verification_ptr[tid];
 
 	for(auto i = 0; i < (allocation_size / sizeof(int)); ++i)
@@ -44,6 +47,7 @@ __global__ void d_testReadFromMemory(int** verification_ptr, int num_allocations
 		if(ptr[i] != tid)
 		{
 			printf("%d - %d | We got a wrong value here! %d vs %d\n", threadIdx.x, blockIdx.x, ptr[i], tid);
+			return;
 		}
 	}
 }
@@ -63,7 +67,7 @@ int main(int argc, char* argv[])
 	std::cout << "Usage: num_allocations allocation_size_in_bytes\n";
 	int num_allocations{10000};
 	int allocation_size_byte{16};
-	int num_iterations {25};
+	int num_iterations {10};
 	if(argc >= 2)
 	{
 		num_allocations = atoi(argv[1]);

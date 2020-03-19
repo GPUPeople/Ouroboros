@@ -93,17 +93,21 @@ __global__ void d_initializeOuroborosQueues(OUROBOROS* ouroboros)
 {
 	// Template-recursive to initialize queues
 	ouroboros->memory.chunk_locator.init(ouroboros->memory.maxChunks);
-	ouroboros->initQueues();
+	IndexQueue* d_base_chunk_reuse{nullptr};
+	ouroboros->initQueues(d_base_chunk_reuse);
 }
 
 // ##############################################################################################################################################
 //
 template<class OUROBOROS, class... OUROBOROSES>
-__forceinline__ __device__ void Ouroboros<OUROBOROS, OUROBOROSES...>::initQueues()
+__forceinline__ __device__ void Ouroboros<OUROBOROS, OUROBOROSES...>::initQueues(IndexQueue* d_base_chunk_reuse)
 {
 	// --------------------------------------------------------
 	// Init queues
 	memory_manager.d_chunk_reuse_queue.init();
+	if(d_base_chunk_reuse == nullptr)
+		d_base_chunk_reuse = &(memory_manager.d_chunk_reuse_queue);
+	memory_manager.d_base_chunk_reuse_queue = d_base_chunk_reuse;
 	#pragma unroll
 	for (auto i = 0; i < ConcreteOuroboros::NumberQueues_; ++i)
 	{
@@ -111,7 +115,7 @@ __forceinline__ __device__ void Ouroboros<OUROBOROS, OUROBOROSES...>::initQueues
 	}
 
 	// Init next queues
-	next_memory_manager.initQueues();
+	next_memory_manager.initQueues(d_base_chunk_reuse);
 }
 
 // ##############################################################################################################################################

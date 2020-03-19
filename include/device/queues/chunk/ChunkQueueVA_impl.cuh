@@ -129,7 +129,7 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 				// 	index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
 				// 	if(printDebug)
 				// 		printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, chunk_id, queue_chunk->virtual_start_);
-				// 	//memory_manager->d_chunk_reuse_queue.enqueue(reusable_chunk_id);
+				// 	//memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
 				// }
 				if (atomicCAS(&front_, virtual_pos, virtual_pos + 1) == virtual_pos)
 				{
@@ -144,7 +144,7 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 						index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
 						if(printDebug)
 							printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, chunk_id, queue_chunk->virtual_start_);
-						memory_manager->d_chunk_reuse_queue.enqueue(reusable_chunk_id);
+						memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
 					}
 				}
 				break;
@@ -242,7 +242,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerT
 	  		Ouro::sleep();
 		if(printDebug)
 			printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | ENQUEUE-Reuse\n", reusable_chunk_id, chunk_id, chunk->virtual_start_);
-		memory_manager->d_chunk_reuse_queue.enqueue(reusable_chunk_id);
+		memory_manager->template enqueueChunkForReuse<true>(reusable_chunk_id);
 	}
 }
 

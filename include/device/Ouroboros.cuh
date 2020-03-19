@@ -31,19 +31,9 @@ struct OuroborosBase
 	size_t maxChunks{ 0 };
 	ChunkLocator* chunk_locator{nullptr};
 
-	bool initialized{ false };
-
 	// Re-Use Queue
 	IndexQueue d_chunk_reuse_queue;
-
-	// Sizes
-	size_t allocationSize{ 0 };
-	size_t mem_manager_size{ 0 };
-	size_t chunkqueuesize{ 0 };
-	size_t pagequeuessize{ 0 };
-	size_t adjacencysize{ 0 };
-	size_t additionalSizeBeginning{0};
-	size_t additionalSizeEnd{0};
+	IndexQueue* d_base_chunk_reuse_queue{nullptr};
 
 	// Some statistics in there
 	Statistics stats;
@@ -64,6 +54,7 @@ struct OuroborosChunks : OuroborosBase
 	static constexpr unsigned int LargestPageSize_{SmallestPageSize_ << (NumberQueues_ - 1)};
 	static constexpr unsigned int ChunkSize_{ SmallestPageSize_ << (NumberQueues_ - 1) };
 	static constexpr unsigned int ChunkAddFactor_{ChunkSize_ / CHUNK_BASE::size_};
+	static constexpr bool s_isBaseOuroboros{ChunkAddFactor_ == 1};
 
 	
 	using ChunkBase = CHUNK_BASE;
@@ -72,8 +63,8 @@ struct OuroborosChunks : OuroborosBase
 	using QI = QueueIndex<SmallestPageSize_, ChunkSize_>;
 
 	static constexpr size_t memory_manager_size_() { return Ouro::alignment<uint64_t>(sizeof(OuroborosChunks)); };
-	static constexpr size_t chunk_queue_size_{Ouro::alignment<uint64_t>(chunk_queue_size * sizeof(index_t))};
-	static constexpr size_t page_queue_size_{Ouro::alignment<uint64_t>(QueueType::size_ * sizeof(MemoryIndex))};
+	static constexpr size_t chunk_queue_size_{Ouro::alignment<uint64_t>(chunk_queue_size * sizeof(index_t), ChunkBase::size_)};
+	static constexpr size_t page_queue_size_{Ouro::alignment<uint64_t>(QueueType::size_ * sizeof(MemoryIndex), ChunkBase::size_)};
 
 	QueueType d_storage_reuse_queue[NumberQueues_];
 
@@ -93,6 +84,19 @@ struct OuroborosChunks : OuroborosBase
 
 	__forceinline__ __device__ void printFreeResources();
 
+	template <bool QUEUECHUNK = false>
+	__forceinline__ __device__ void enqueueChunkForReuse(index_t chunk_index)
+	{
+		if(!s_isBaseOuroboros && QUEUECHUNK)
+		{
+			d_base_chunk_reuse_queue->enqueue(chunk_index);
+		}
+		else
+		{
+			d_chunk_reuse_queue.enqueue(chunk_index);
+		}
+	}
+
 	// #################################################################################################
 	// Functionality
 	template <bool QUEUECHUNK = false>
@@ -102,16 +106,24 @@ struct OuroborosChunks : OuroborosBase
 
 		if(statistics_enabled)
 			atomicAdd(&stats.chunkAllocationCount, 1);
-		if(d_chunk_reuse_queue.dequeue(chunk_index))
-			return true;
+
+		if(!s_isBaseOuroboros && QUEUECHUNK)
+		{
+			if(d_base_chunk_reuse_queue->dequeue(chunk_index))
+			{
+				return true;
+			}
+		}
+		else
+		{
+			if(d_chunk_reuse_queue.dequeue(chunk_index))
+			{
+				return true;
+			}
+		}
+
 		chunk_index = atomicAdd(next_free_chunk, (QUEUECHUNK ? 1 : ChunkAddFactor_));
 		chunk_locator->initChunkIndex(chunk_index);
-		return (chunk_index + (QUEUECHUNK ? 1 : ChunkAddFactor_)) < maxChunks;
-
-		#else
-
-		chunk_index = *next_free_chunk;
-		*next_free_chunk += (QUEUECHUNK ? 1 : ChunkAddFactor_);
 		return (chunk_index + (QUEUECHUNK ? 1 : ChunkAddFactor_)) < maxChunks;
 
 		#endif
@@ -139,6 +151,7 @@ struct OuroborosPages : OuroborosBase
 	static constexpr unsigned int LargestPageSize_{SmallestPageSize_ << (NumberQueues_ - 1)};
 	static constexpr unsigned int ChunkSize_{ SmallestPageSize_ << (NumberQueues_ - 1) };
 	static constexpr unsigned int ChunkAddFactor_{ChunkSize_ / CHUNK_BASE::size_};
+	static constexpr bool s_isBaseOuroboros{ChunkAddFactor_ == 1};
 
 	using ChunkBase = CHUNK_BASE;
 	using ChunkType = PageChunk<ChunkBase, ChunkSize_>;
@@ -146,8 +159,8 @@ struct OuroborosPages : OuroborosBase
 	using QI = QueueIndex<SmallestPageSize_, ChunkSize_>;
 
 	static constexpr size_t memory_manager_size_() { return Ouro::alignment<uint64_t>(sizeof(OuroborosPages)); };
-	static constexpr size_t chunk_queue_size_{Ouro::alignment<uint64_t>(chunk_queue_size * sizeof(index_t), ChunkSize_)};
-	static constexpr size_t page_queue_size_{Ouro::alignment<uint64_t>(QueueType::size_ * sizeof(MemoryIndex), ChunkSize_)};
+	static constexpr size_t chunk_queue_size_{Ouro::alignment<uint64_t>(chunk_queue_size * sizeof(index_t), ChunkBase::size_)};
+	static constexpr size_t page_queue_size_{Ouro::alignment<uint64_t>(QueueType::size_ * sizeof(MemoryIndex), ChunkBase::size_)};
 
 	QueueType d_storage_reuse_queue[NumberQueues_];
 
@@ -161,7 +174,20 @@ struct OuroborosPages : OuroborosBase
 
     __forceinline__ __device__ void* allocPage(size_t size);
 
-	 __forceinline__ __device__ void freePage(MemoryIndex index);
+	__forceinline__ __device__ void freePage(MemoryIndex index);
+
+	template <bool QUEUECHUNK = false>
+	__forceinline__ __device__ void enqueueChunkForReuse(index_t chunk_index)
+	{
+		if(!s_isBaseOuroboros && QUEUECHUNK)
+		{
+			d_base_chunk_reuse_queue->enqueue(chunk_index);
+		}
+		else
+		{
+			d_chunk_reuse_queue.enqueue(chunk_index);
+		}
+	}
 
 	// #################################################################################################
 	// Functionality
@@ -172,18 +198,25 @@ struct OuroborosPages : OuroborosBase
 
 		if(statistics_enabled)
 			atomicAdd(&stats.chunkAllocationCount, 1);
-		if(d_chunk_reuse_queue.dequeue(chunk_index))
+
+		if(!s_isBaseOuroboros && QUEUECHUNK)
 		{
-			return true;
+			if(d_base_chunk_reuse_queue->dequeue(chunk_index))
+			{
+				return true;
+			}
 		}
+		else
+		{
+			if(d_chunk_reuse_queue.dequeue(chunk_index))
+			{
+				return true;
+			}
+		}
+
 		chunk_index = atomicAdd(next_free_chunk, (QUEUECHUNK ? 1 : ChunkAddFactor_));
+		// chunk_index = atomicAdd(next_free_chunk, ChunkAddFactor_);
 		chunk_locator->initChunkIndex(chunk_index);
-		return (chunk_index + (QUEUECHUNK ? 1 : ChunkAddFactor_)) < maxChunks;
-
-		#else
-
-		chunk_index = *next_free_chunk;
-		*next_free_chunk += (QUEUECHUNK ? 1 : ChunkAddFactor_);
 		return (chunk_index + (QUEUECHUNK ? 1 : ChunkAddFactor_)) < maxChunks;
 
 		#endif
@@ -219,6 +252,15 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 	using QI = typename ConcreteOuroboros::QI;
 
 	static constexpr size_t size_() { return Ouro::alignment<size_t>(sizeof(Ouroboros<OUROBOROS, OUROBOROSES...>), ChunkBase::size_); };
+
+	static constexpr bool checkSizeConstraints() 
+	{ 
+		return 
+		(countBitShift(ConcreteOuroboros::ChunkSize_ / ConcreteOuroboros::SmallestPageSize_) <= NUM_BITS_FOR_PAGE) 
+		&& 
+		Next::checkSizeConstraints();
+	}
+	static_assert(checkSizeConstraints(), "Size Constraints do not match! Check the instantiation parameters.");
 
 	Memory memory;
 	ConcreteOuroboros memory_manager;
@@ -293,7 +335,7 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 		next_memory_manager.setMemory(memory);
 	}
 
-	__forceinline__ __device__ void initQueues();
+	__forceinline__ __device__ void initQueues(IndexQueue* d_base_chunk_reuse);
 
 	void printFreeResources();
 
@@ -357,15 +399,16 @@ struct Ouroboros<>
 
 	__forceinline__ __device__ void freePageRecursive(unsigned int page_size, MemoryIndex index)
 	{
-		printf("Spilled into empty Ouroboros, this should not happend\n");
+		printf("Spilled into empty Ouroboros, this should not happend| Page Size: %u | Chunk Index: %u | Page Index: %u\n", page_size, index.getChunkIndex(), index.getPageIndex());
 		__trap();
 	}
 
 	__forceinline__ __device__ void setMemory(Memory* memory){}
-	__forceinline__ __device__ void initQueues() {}
+	__forceinline__ __device__ void initQueues(IndexQueue* d_base_chunk_reuse) {}
 	__forceinline__ __device__ void d_printResources(){}
 	void printFreeResources(){}
 	static constexpr int totalNumberQueues(){return 0;}
+	static constexpr bool checkSizeConstraints() { return true;}
 };
 
 template <typename MemoryManagerType>

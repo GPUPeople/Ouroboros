@@ -72,7 +72,7 @@ __forceinline__ __device__ bool PageQueueVA<CHUNK_TYPE>::enqueueChunk(MemoryMana
 				index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
 				if(printDebug)
 					printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | ENQUEUEChunk-Reuse\n", reusable_chunk_id, chunk_id, queue_chunk->virtual_start_);
-				memory_manager->d_chunk_reuse_queue.enqueue(reusable_chunk_id);
+					memory_manager->template enqueueChunkForReuse<true>(reusable_chunk_id);
 			}
 
 			// Compute new index
@@ -159,8 +159,7 @@ __forceinline__ __device__ void* PageQueueVA<CHUNK_TYPE>::allocPage(MemoryManage
 		index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
 		if(printDebug)
 			printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, chunk_id, chunk->virtual_start_);
-		//memory_manager->d_chunk_reuse_queue.enqueueClean(reusable_chunk_id, Chunk::template getData<index_t>(memory_manager->d_data, reusable_chunk_id));
-		memory_manager->d_chunk_reuse_queue.enqueue(reusable_chunk_id);
+		memory_manager->template enqueueChunkForReuse<true>(reusable_chunk_id);
 	}
 
 	chunk_index = index.getChunkIndex();
@@ -199,7 +198,7 @@ __forceinline__ __device__ void PageQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerTy
 	{
 		unsigned int chunk_index{ 0 };
 		// We pre-emptively allocate the next chunk already
-		memory_manager->allocateChunk<false>(chunk_index);
+		memory_manager->allocateChunk<true>(chunk_index);
 		QueueChunkType::initializeChunk(memory_manager->d_data, chunk_index, virtual_pos + QueueChunkType::num_spots_);
 
 		__threadfence();
@@ -215,7 +214,7 @@ __forceinline__ __device__ void PageQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerTy
 	  		Ouro::sleep();
 		if(printDebug)
 			printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | ENQUEUE-Reuse\n", reusable_chunk_id, chunk_id, chunk->virtual_start_);
-		memory_manager->d_chunk_reuse_queue.enqueue(reusable_chunk_id);
+		memory_manager->template enqueueChunkForReuse<true>(reusable_chunk_id);
 	}
 }
 
