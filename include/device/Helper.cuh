@@ -58,4 +58,9 @@ struct QueueIndex
 	{
 		return pages_per_chunk_factor >> index;
 	}
+
+	static __device__ __host__ __forceinline__ int getPageSizeFromQueueIndex(unsigned int index)
+	{
+		return SMALLEST_PAGE_SIZE << index;
+	}
 };

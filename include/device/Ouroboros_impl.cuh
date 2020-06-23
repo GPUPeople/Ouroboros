@@ -153,21 +153,3 @@ void updateMemoryManagerDevice(MemoryManagerType& memory_manager)
 		sizeof(memory_manager),
 		cudaMemcpyHostToDevice));
 }
-
-// ##############################################################################################################################################
-//
-template<class OUROBOROS, class... OUROBOROSES>
-Ouroboros<OUROBOROS, OUROBOROSES...>::~Ouroboros()
-{
-	if(printDebug)
-		printf("Ouroboros Destructor called\n");
-
-	if (memory.d_memory != nullptr)
-	{
-		updateMemoryManagerHost(*this);
-		cudaFree(memory.d_memory);
-		memory.d_memory = nullptr;
-		memory.d_data = nullptr;
-		memory.d_data_end = nullptr;
-	}
-}

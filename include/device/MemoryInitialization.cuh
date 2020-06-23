@@ -127,7 +127,11 @@ void Ouroboros<OUROBOROS, OUROBOROSES...>::initialize(size_t additionalSizeBegin
 	if (initialized)
 		return;
 	
-	cudaDeviceSetLimit(cudaLimitMallocHeapSize, cuda_heap_size);
+	if(!cuda_initialized)
+	{
+		cudaDeviceSetLimit(cudaLimitMallocHeapSize, cuda_heap_size);
+		cuda_initialized = true;
+	}
 	size_t size;
 	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
 	if(printDebug)

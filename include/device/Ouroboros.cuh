@@ -7,6 +7,12 @@
 
 struct Memory
 {
+	Memory(){}
+	~Memory()
+	{
+		if(d_memory != nullptr)
+			HANDLE_ERROR(cudaFree(d_memory));
+	}
 	// Data
 	memory_t* d_memory{ nullptr };
 	memory_t* d_data{ nullptr };
@@ -272,8 +278,6 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 	// -----------------------------------------------------------------------------------------------------------
 	// Public Interface
 
-	~Ouroboros();
-
 	void initialize(size_t additionalSizeBeginning = 0, size_t additionalSizeEnd = 0);
 
 	void reinitialize(float overallocation_factor);
@@ -287,9 +291,6 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 	__forceinline__ __device__ void enqueueInitialChunk(index_t queue_index, index_t chunk_index, int available_pages, index_t pages_per_chunk)
 	{
 		// TODO: This should later relay to the correct mem man
-		printf("This should relay to the correct memory manager!\n");
-		__trap();
-
 		memory_manager.d_storage_reuse_queue[queue_index].enqueueInitialChunk(&memory_manager, chunk_index, available_pages, pages_per_chunk);
 	}
 
@@ -298,10 +299,15 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 	// -----------------------------------------------------------------------------------------------------------
 	// Private Interface
 
-	static constexpr int totalNumberQueues()
+	static constexpr int totalNumberVirtualQueues()
 	{
 		return ((ConcreteOuroboros::QueueType::virtualized) ? ConcreteOuroboros::NumberQueues_ : 0) 
-		+ Next::totalNumberQueues();
+		+ Next::totalNumberVirtualQueues();
+	}
+
+	static constexpr int totalNumberQueues()
+	{
+		return ConcreteOuroboros::NumberQueues_ + Next::totalNumberVirtualQueues();
 	}
 
 	size_t totalMemoryManagerSize()
@@ -380,7 +386,11 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 		exit(-1);
 		return HeapAllocator(memory.d_data_end);
 	}
+
+	static bool cuda_initialized;
 };
+template<class OUROBOROS, class... OUROBOROSES>
+bool Ouroboros<OUROBOROS, OUROBOROSES...>::cuda_initialized = false;
 
 template <>
 struct Ouroboros<>
@@ -407,6 +417,7 @@ struct Ouroboros<>
 	__forceinline__ __device__ void initQueues(IndexQueue* d_base_chunk_reuse) {}
 	__forceinline__ __device__ void d_printResources(){}
 	void printFreeResources(){}
+	static constexpr int totalNumberVirtualQueues(){return 0;}
 	static constexpr int totalNumberQueues(){return 0;}
 	static constexpr bool checkSizeConstraints() { return true;}
 };

@@ -9,6 +9,7 @@ struct MemoryIndex
 	static constexpr unsigned int NumBitsForChunk{ 32 - NumBitsForPage };
 	static constexpr unsigned int MaxNumChunks{ 1 << NumBitsForChunk };
 	static constexpr unsigned int PageBitMask{(1 << NUM_BITS_FOR_PAGE) - 1};
+	static constexpr uint32_t MAX_VALUE{0xFFFFFFFF};
 
 	// Data	
 	uint32_t index;
