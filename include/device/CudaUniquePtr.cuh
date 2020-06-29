@@ -49,6 +49,18 @@ struct CudaUniquePtr
 
 	// #######################################################################################
 	// 
+	void resize(size_t new_size)
+	{
+		void* tmp{nullptr};
+		HANDLE_ERROR(cudaMalloc(reinterpret_cast<void**>(&tmp), new_size * sizeof(DataType)));
+		HANDLE_ERROR(cudaMemcpy(tmp, data, sizeof(DataType) * std::min(size, new_size), cudaMemcpyDeviceToDevice));
+		HANDLE_ERROR(cudaFree(data));
+		size = new_size;
+		data = reinterpret_cast<DataType*>(tmp);
+	}
+
+	// #######################################################################################
+	// 
 	void copyToDevice(DataType* host_data, size_t copy_size, unsigned int offset = 0)
 	{
 		HANDLE_ERROR(cudaMemcpy(data + offset, host_data, sizeof(DataType) * copy_size, cudaMemcpyHostToDevice));
