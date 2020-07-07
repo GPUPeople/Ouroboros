@@ -278,7 +278,7 @@ struct Ouroboros<OUROBOROS, OUROBOROSES...>
 	// -----------------------------------------------------------------------------------------------------------
 	// Public Interface
 
-	void initialize(size_t additionalSizeBeginning = 0, size_t additionalSizeEnd = 0);
+	void initialize(size_t instantiation_size, size_t additionalSizeBeginning = 0, size_t additionalSizeEnd = 0);
 
 	void reinitialize(float overallocation_factor);
 

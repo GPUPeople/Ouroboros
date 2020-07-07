@@ -121,7 +121,7 @@ __forceinline__ __device__ void Ouroboros<OUROBOROS, OUROBOROSES...>::initQueues
 // ##############################################################################################################################################
 //
 template<class OUROBOROS, class... OUROBOROSES>
-void Ouroboros<OUROBOROS, OUROBOROSES...>::initialize(size_t additionalSizeBeginning, size_t additionalSizeEnd)
+void Ouroboros<OUROBOROS, OUROBOROSES...>::initialize(size_t instantiation_size, size_t additionalSizeBeginning, size_t additionalSizeEnd)
 {
 	// Initialize memory, then call initialize on all instances
 	if (initialized)
@@ -157,7 +157,7 @@ void Ouroboros<OUROBOROS, OUROBOROSES...>::initialize(size_t additionalSizeBegin
 
 	// Align both the required size and total size to the chunk base size
 	auto total_required_size = Ouro::alignment<size_t>(size_() + total_memory_manager_size + additionalSizeBeginning + additionalSizeEnd, ChunkBase::size());
-	auto difference = Ouro::alignment<size_t>(ALLOCATION_SIZE, ChunkBase::size()) - total_required_size;
+	auto difference = Ouro::alignment<size_t>(instantiation_size, ChunkBase::size()) - total_required_size;
 	memory.maxChunks = difference / ChunkBase::size();
 	memory.adjacencysize = Ouro::alignment<uint64_t>(memory.maxChunks * ChunkBase::size());
 	size_t chunk_locator_size = Ouro::alignment<size_t>(ChunkLocator::size(memory.maxChunks), ChunkBase::size());

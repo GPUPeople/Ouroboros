@@ -4,8 +4,6 @@ static constexpr bool FINAL_RELEASE{false};
 
 // General Params
 static constexpr unsigned int SLEEP_TIME{ 10 };
-// static constexpr unsigned long long ALLOCATION_SIZE{ 9ULL * 1024ULL * 1024ULL * 1024ULL };
-static constexpr unsigned long long ALLOCATION_SIZE{ 2048ULL * 1024ULL * 1024ULL };
 
 // Queue Params
 static constexpr int NUM_QUEUES{ 10 }; // How many queues to instantiate per Ouroboros instance
