@@ -192,10 +192,13 @@ void Ouroboros<OUROBOROS, OUROBOROSES...>::initialize(size_t instantiation_size,
 	// Lets update the device again to that all the info is there as well
 	updateMemoryManagerDevice(*this);
 
-	// Clean all chunks
 	int block_size = 256;
 	int grid_size = memory.maxChunks;
-	d_cleanChunks<MyType> << <grid_size, block_size >> > (reinterpret_cast<MyType*>(memory.d_memory), 0);
+	if(totalNumberVirtualQueues())
+	{
+		// Clean all chunks
+		d_cleanChunks<MyType> << <grid_size, block_size >> > (reinterpret_cast<MyType*>(memory.d_memory), 0);
+	}
 
 	HANDLE_ERROR(cudaDeviceSynchronize());
 
