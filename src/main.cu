@@ -131,8 +131,9 @@ int main(int argc, char* argv[])
 
 	#endif
 
+	size_t instantitation_size = 8192ULL * 1024ULL * 1024ULL;
 	MemoryManagerType memory_manager;
-	memory_manager.initialize();
+	memory_manager.initialize(instantitation_size);
 
 	int** d_memory{nullptr};
 	HANDLE_ERROR(cudaMalloc(&d_memory, sizeof(int*) * num_allocations));

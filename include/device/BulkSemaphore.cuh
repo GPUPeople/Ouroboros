@@ -48,7 +48,7 @@ public:
 
 	// ################################################################################################################
 	// Static Variables
-	static constexpr unsigned long long middle_mask_shift{ 21 };
+	static constexpr unsigned long long middle_mask_shift{ 25 };
 	static constexpr unsigned long long upper_mask_shift{ middle_mask_shift * 2 };
 	// Highest expressable value
 	static constexpr unsigned long long highest_value_mask{ (1ULL << middle_mask_shift) - 1 };
