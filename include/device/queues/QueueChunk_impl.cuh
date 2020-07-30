@@ -52,7 +52,8 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::guaranteeWarpSyncPerChunk
 				{
 					if(counter++ > (1000*1000*10))
 					{
-						printf("%d : %d died in gWS from %s index: %u - ptr: %p | mask: %x\n", threadIdx.x, blockIdx.x, message, chunk_ptr->chunk_index_, chunk_ptr, active_mask);
+						if(!FINAL_RELEASE)
+							printf("%d : %d died in gWS from %s index: %u - ptr: %p | mask: %x\n", threadIdx.x, blockIdx.x, message, chunk_ptr->chunk_index_, chunk_ptr, active_mask);
 						__trap();
 					}
 					Ouro::sleep(counter);
@@ -147,7 +148,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueue(MemoryManagerType
 			unsigned int chunk_index{ 0 };
 			memory_manager->allocateChunk<true>(chunk_index);
 
-			if(printDebug)
+			if(!FINAL_RELEASE && printDebug)
 				printf("E - %d : %d Allocate a new chunk for queue with index: %u and virtual pos: %u\n", threadIdx.x, blockIdx.x, chunk_index, position);
 
 			auto potential_next = initializeChunk(memory_manager->d_data, chunk_index, position + num_spots_);
@@ -156,7 +157,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueue(MemoryManagerType
 			__threadfence();
 
 			atomicExch(&chunk_ptr->next_, reinterpret_cast<unsigned long long>(potential_next));
-			if(printDebug)
+			if(!FINAL_RELEASE && printDebug)
 				printf("E - %d : %d Allocate a new chunk for the queue with index: %u and address: %p\n", threadIdx.x, blockIdx.x, chunk_index, potential_next);
 		}
 
@@ -201,7 +202,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueueChunk(MemoryManage
 			// In either case, pre-allocate a new chunk here
 			memory_manager->allocateChunk<true>(queue_chunk_index);
 
-			if(printDebug)
+			if(!FINAL_RELEASE && printDebug)
 				printf("EC - %d : %d Allocate a new chunk for queue with index: %u and virtual pos: %u\n", threadIdx.x, blockIdx.x, queue_chunk_index, (local_position == 0) ? (position + num_spots_) : (position + num_spots_ + (num_spots_ - local_position)) );
 
 			index_t next_virtual_start{ (local_position == 0) ? (position + num_spots_) : (position + num_spots_ + (num_spots_ - local_position)) };
@@ -222,7 +223,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueueChunk(MemoryManage
 			{
 				// In this case we can set our current next pointer to the previously allocated chunk
 				atomicExch(&chunk_ptr->next_, reinterpret_cast<unsigned long long>(potential_next));
-				if(printDebug)
+				if(!FINAL_RELEASE && printDebug)
 					printf("EC - %d : %d Allocate a new chunk for the queue with index: %u and address: %p\n", threadIdx.x, blockIdx.x, queue_chunk_index, potential_next);
 			}
 
@@ -281,7 +282,8 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::enqueueChunk(MemoryManage
 				{
 					if(counter++ > (1000*1000*10))
 					{
-						printf("%d : %d died in traversal in enqueueChunk, chunk_index: %u - ptr: %p\n", threadIdx.x, blockIdx.x, chunk_ptr->chunk_index_, chunk_ptr);
+						if(!FINAL_RELEASE)
+							printf("%d : %d died in traversal in enqueueChunk, chunk_index: %u - ptr: %p\n", threadIdx.x, blockIdx.x, chunk_ptr->chunk_index_, chunk_ptr);
 						__trap();
 					}
 					Ouro::sleep(counter);
@@ -397,7 +399,8 @@ __forceinline__ __device__ QueueChunk<ChunkBase>* QueueChunk<ChunkBase>::locateQ
 		{
 			if(counter++ > (1000*1000*10))
 			{
-				printf("%d : %d died in LocateQueueChunk in virtual start, coming from %s, chunk_index: %u - ptr: %p\n", threadIdx.x, blockIdx.x, message, chunk_ptr->chunk_index_, chunk_ptr);
+				if(!FINAL_RELEASE)
+					printf("%d : %d died in LocateQueueChunk in virtual start, coming from %s, chunk_index: %u - ptr: %p\n", threadIdx.x, blockIdx.x, message, chunk_ptr->chunk_index_, chunk_ptr);
 				__trap();
 			}
 			Ouro::sleep(counter);
@@ -434,7 +437,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::setBackPointer(QueueChunk
 	while(atomicCAS((reinterpret_cast<unsigned long long*>(queue_next_ptr)), reinterpret_cast<unsigned long long>(chunk_ptr), Ouro::ldg_cg(&chunk_ptr->next_)) 
 		== reinterpret_cast<unsigned long long>(chunk_ptr))
 	{
-		if(printDebug)
+		if(!FINAL_RELEASE && printDebug)
 			printf("%d : %d Moved backpointer from virtual start: %u to %u\n", threadIdx.x, blockIdx.x, chunk_ptr->virtual_start_, reinterpret_cast<QueueChunk<ChunkBase>*>(chunk_ptr->next_)->virtual_start_);
 		// Read the count of the next chunk in line, check if counterA is already full as well
 		auto current_count_A = extractCounterA(Ouro::ldg_cg(&reinterpret_cast<QueueChunk<ChunkBase>*>(chunk_ptr->next_)->count_));
@@ -528,7 +531,7 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::setOldPointer(MemoryManag
 			{
 				--free_count;
 
-				if(printDebug)
+				if(!FINAL_RELEASE && printDebug)
 					printf("%d - %d Reuse index: %u \n", threadIdx.x, blockIdx.x, ChunkType::Base::getIndexFromPointer(memory_manager->d_data, current_old_ptr));
 				memory_manager->template enqueueChunkForReuse<true>(ChunkType::Base::getIndexFromPointer(memory_manager->d_data, current_old_ptr));
 

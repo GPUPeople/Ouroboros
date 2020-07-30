@@ -41,7 +41,8 @@ struct ChunkLocator
 			// Go back, set mask to full
 			if(index == 0)
 			{
-				printf("Oh no! %u %u\n", mask, chunk_index);
+				if(!FINAL_RELEASE)
+					printf("Oh no! %u %u\n", mask, chunk_index);
 				__trap();
 			}
 			--index;

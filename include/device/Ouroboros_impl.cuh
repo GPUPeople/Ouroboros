@@ -97,7 +97,7 @@ __forceinline__ __device__ void Ouroboros<OUROBOROS, OUROBOROSES...>::free(void*
 {
 	if(!validOuroborosPointer(ptr))
 	{
-		if(printDebug)
+		if(!FINAL_RELEASE && printDebug)
 			printf("Freeing CUDA Memory!\n");
 		::free(ptr);
 		return;

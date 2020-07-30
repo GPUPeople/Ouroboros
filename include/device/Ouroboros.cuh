@@ -409,7 +409,8 @@ struct Ouroboros<>
 
 	__forceinline__ __device__ void freePageRecursive(unsigned int page_size, MemoryIndex index)
 	{
-		printf("Spilled into empty Ouroboros, this should not happend| Page Size: %u | Chunk Index: %u | Page Index: %u\n", page_size, index.getChunkIndex(), index.getPageIndex());
+		if(!FINAL_RELEASE)
+			printf("Spilled into empty Ouroboros, this should not happend| Page Size: %u | Chunk Index: %u | Page Index: %u\n", page_size, index.getChunkIndex(), index.getPageIndex());
 		__trap();
 	}
 

@@ -194,14 +194,14 @@ __forceinline__ __device__ void ChunkQueue<ChunkType>::freePage(MemoryManagerTyp
 				atomicExch(queue_ + chunk->queue_pos, DeletionMarker<index_t>::val);
 				atomicSub(&count_, 1);
 				memory_manager->d_chunk_reuse_queue.template enqueueClean<MemoryManagerType::ChunkSize_>(index.getChunkIndex(), reinterpret_cast<index_t*>(reinterpret_cast<memory_t*>(chunk) + ChunkType::meta_data_size_));
-				if(printDebug)
+				if(!FINAL_RELEASE && printDebug)
 					printf("Successfull re-use of chunk\n");
 				if(statistics_enabled)
 					atomicAdd(&(memory_manager->stats.chunkReuseCount), 1);
 			}
 			else
 			{
-				if(printDebug)
+				if(!FINAL_RELEASE && printDebug)
 					printf("Try Flash Chunk did not work!\n");
 				// Flashing did not work, increase semaphore again by all pages
 				semaphore.signal(num_pages_per_chunk);
@@ -210,7 +210,7 @@ __forceinline__ __device__ void ChunkQueue<ChunkType>::freePage(MemoryManagerTyp
 		}
 		else
 		{
-			if(printDebug)
+			if(!FINAL_RELEASE && printDebug)
 				printf("Try Reduce did not work!\n");
 		}
 	}

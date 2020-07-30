@@ -20,7 +20,7 @@ __forceinline__ __device__ void ChunkQueueVL<CHUNK_TYPE>::init(MemoryManagerType
 		memory_manager->allocateChunk<true>(chunk_index);
 		auto queue_chunk = QueueChunkType::initializeChunk(memory_manager->d_data, chunk_index, 0);
 
-		if(printDebug)
+		if(!FINAL_RELEASE && printDebug)
 			printf("Allocate a new chunk for the queue %u with index: %u : ptr: %p\n",queue_index_, chunk_index, queue_chunk);
 		
 		// All pointers point to the same chunk in the beginning
@@ -73,7 +73,10 @@ __forceinline__ __device__ void* ChunkQueueVL<CHUNK_TYPE>::allocPage(MemoryManag
 	semaphore.wait(1, pages_per_chunk, [&]()
 	{
 		if (!memory_manager->allocateChunk<false>(chunk_index))
-			printf("TODO: Could not allocate chunk!!!\n");
+		{
+			if(!FINAL_RELEASE)
+				printf("TODO: Could not allocate chunk!!!\n");
+		}
 
 		ChunkType::initializeChunk(memory_manager->d_data, chunk_index, pages_per_chunk, pages_per_chunk);
 		__threadfence();
@@ -154,7 +157,7 @@ __forceinline__ __device__ void ChunkQueueVL<CHUNK_TYPE>::freePage(MemoryManager
 	else if(mode == ChunkType::ChunkAccessType::FreeMode::DEQUEUE)
 	{
 		// TODO: Implement dequeue chunks
-		if(printDebug)
+		if(!FINAL_RELEASE && printDebug)
 			printf("I guess I should actually dequeue at this point!\n");
 	}
 	// Please do NOT reorder here

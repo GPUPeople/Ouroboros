@@ -70,7 +70,7 @@ __forceinline__ __device__ bool PageQueueVA<CHUNK_TYPE>::enqueueChunk(MemoryMana
 			{
 				// We can remove this chunk
 				index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
-				if(printDebug)
+				if(!FINAL_RELEASE && printDebug)
 					printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | ENQUEUEChunk-Reuse\n", reusable_chunk_id, chunk_id, queue_chunk->virtual_start_);
 					memory_manager->template enqueueChunkForReuse<true>(reusable_chunk_id);
 			}
@@ -139,7 +139,10 @@ __forceinline__ __device__ void* PageQueueVA<CHUNK_TYPE>::allocPage(MemoryManage
 	semaphore.wait(1, pages_per_chunk, [&]()
 	{
 		if (!memory_manager->allocateChunk<false>(chunk_index))
-	 		printf("TODO: Could not allocate chunk!!!\n");
+		{
+			if(!FINAL_RELEASE)
+				printf("TODO: Could not allocate chunk!!!\n");
+		}
 
 	 	ChunkType::initializeChunk(memory_manager->d_data, chunk_index, pages_per_chunk);
 		__threadfence();
@@ -157,7 +160,7 @@ __forceinline__ __device__ void* PageQueueVA<CHUNK_TYPE>::allocPage(MemoryManage
 	{
 		// We can remove this chunk
 		index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
-		if(printDebug)
+		if(!FINAL_RELEASE && printDebug)
 			printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, chunk_id, chunk->virtual_start_);
 		memory_manager->template enqueueChunkForReuse<true>(reusable_chunk_id);
 	}
@@ -212,7 +215,7 @@ __forceinline__ __device__ void PageQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerTy
 		// We can remove this chunk
 		index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
 	  		Ouro::sleep();
-		if(printDebug)
+		if(!FINAL_RELEASE && printDebug)
 			printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | ENQUEUE-Reuse\n", reusable_chunk_id, chunk_id, chunk->virtual_start_);
 		memory_manager->template enqueueChunkForReuse<true>(reusable_chunk_id);
 	}

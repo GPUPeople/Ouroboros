@@ -86,7 +86,10 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 	semaphore.wait(1, pages_per_chunk, [&]()
 	{
 		if (!memory_manager->allocateChunk<false>(chunk_index))
-			printf("TODO: Could not allocate chunk!!!\n");
+		{
+			if(!FINAL_RELEASE)
+				printf("TODO: Could not allocate chunk!!!\n");
+		}
 
 		ChunkType::initializeChunk(memory_manager->d_data, chunk_index, pages_per_chunk, pages_per_chunk);
 		// Please do NOT reorder here
@@ -142,7 +145,7 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 					{
 						// We can remove this chunk
 						index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
-						if(printDebug)
+						if(!FINAL_RELEASE && printDebug)
 							printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, chunk_id, queue_chunk->virtual_start_);
 						memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
 					}
@@ -199,7 +202,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::freePage(MemoryManager
 	else if(mode == ChunkType::ChunkAccessType::FreeMode::DEQUEUE)
 	{
 		// TODO: Implement dequeue chunks
-		if(printDebug)
+		if(!FINAL_RELEASE && printDebug)
 			printf("I guess I should actually dequeue at this point!\n");
 	}
 
@@ -240,7 +243,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerT
 		// We can remove this chunk
 		index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
 	  		Ouro::sleep();
-		if(printDebug)
+		if(!FINAL_RELEASE && printDebug)
 			printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | ENQUEUE-Reuse\n", reusable_chunk_id, chunk_id, chunk->virtual_start_);
 		memory_manager->template enqueueChunkForReuse<true>(reusable_chunk_id);
 	}
