@@ -124,7 +124,7 @@ __forceinline__ __device__ void BulkSemaphore::wait(int N, uint32_t number_pages
     int mask = __match_any_sync(__activemask(), number_pages_on_chunk);
 	int leader = __ffs(mask) - 1; // Select leader
 		
-	// int leader_mask = __match_any_sync(__activemask(), Ouro::lane_id() == leader);
+	int leader_mask = __match_any_sync(__activemask(), Ouro::lane_id() == leader);
 	if(Ouro::lane_id() == leader)
 	{
 		int num = __popc(mask) * N; // How much should our allocator allocate?
@@ -187,8 +187,8 @@ __forceinline__ __device__ void BulkSemaphore::wait(int N, uint32_t number_pages
 				allocationFunction();
 			}
 			// TODO: Not needed??
-			// __syncwarp(leader_mask);
-			__threadfence_block();
+			__syncwarp(leader_mask);
+			// __threadfence_block();
 
 			if(mode == Mode::Reserve)
 			{

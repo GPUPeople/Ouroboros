@@ -38,7 +38,7 @@ __forceinline__ __device__ bool ChunkQueueVA<CHUNK_TYPE>::enqueueChunk(MemoryMan
 	{
 		enqueue(memory_manager, chunk_index);
 		// Please do NOT reorder here
-		__threadfence_block();
+		__threadfence();
 		semaphore.signalExpected(pages_per_chunk);
 		return true;
 	}
@@ -93,7 +93,7 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 
 		ChunkType::initializeChunk(memory_manager->d_data, chunk_index, pages_per_chunk, pages_per_chunk);
 		// Please do NOT reorder here
-		__threadfence_block();
+		__threadfence();
 		enqueueChunk(memory_manager, chunk_index, pages_per_chunk);
 	});
 
@@ -120,20 +120,21 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 			}
 			if (mode == ChunkType::ChunkAccessType::Mode::DEQUEUE_CHUNK)
 			{
-				// TODO: Why does this not work
+				// // TODO: Why does this not work
 				// atomicMax(&front_, virtual_pos + 1);
-				// // Reduce count again
-				// atomicSub(&count_, 1);
 
 				// // We moved the front pointer
 				// if(queue_chunk->deleteElement(virtual_pos % QueueChunkType::num_spots_))
 				// {
 				// 	// We can remove this chunk
-				// 	index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
+				// 	index_t reusable_chunk_id = atomicExch(&queue_[Ouro::modPower2<size_>(virtual_pos)] , DeletionMarker<index_t>::val);
 				// 	if(printDebug)
-				// 		printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, chunk_id, queue_chunk->virtual_start_);
-				// 	//memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
+				// 		printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, virtual_pos, queue_chunk->virtual_start_);
+				// 	memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
 				// }
+				// // Reduce count again
+				// atomicSub(&count_, 1);
+
 				if (atomicCAS(&front_, virtual_pos, virtual_pos + 1) == virtual_pos)
 				{
 					//printf("We can dequeue this chunk %u\n", chunk_id);
@@ -185,7 +186,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::freePage(MemoryManager
 	if(mode == ChunkType::ChunkAccessType::FreeMode::FIRST_FREE)
 	{
 		// Please do NOT reorder here
-		__threadfence_block();
+		__threadfence();
 
 		// We are the first to free something in this chunk, add it back to the queue
 		if (atomicAdd(&count_, 1) < static_cast<int>(num_spots_))
@@ -207,7 +208,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::freePage(MemoryManager
 	}
 
 	// Please do NOT reorder here
-	__threadfence_block();
+	__threadfence();
 
 	// Signal a free page
 	semaphore.signal(1);
@@ -221,21 +222,20 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerT
 {
 	const unsigned int virtual_pos = atomicAdd(&back_, 1);
 	auto chunk_id = computeChunkID(virtual_pos);
-	const auto position = (virtual_pos % QueueChunkType::num_spots_);
+	const auto position = Ouro::modPower2<QueueChunkType::num_spots_>(virtual_pos);
 
 	if (position == 0)
 	{
 		unsigned int chunk_index{ 0 };
 		// We pre-emptively allocate the next chunk already
 		memory_manager->allocateChunk<true>(chunk_index);
-		QueueChunkType::initializeChunk(memory_manager->d_data, chunk_index, virtual_pos + QueueChunkType::num_spots_);
+		auto queue_chunk = QueueChunkType::initializeChunk(memory_manager->d_data, chunk_index, virtual_pos + QueueChunkType::num_spots_);
+		__threadfence();
 
-		__threadfence_block();
-
-		atomicExch(&queue_[(chunk_id + 1) % size_], chunk_index);
+		atomicExch(&queue_[Ouro::modPower2<size_>(chunk_id + 1)], chunk_index); 
 	}
 
-	__threadfence_block();
+	__threadfence();
 
 	auto chunk = accessQueueElement(memory_manager, chunk_id, virtual_pos);
 	if(QueueChunkType::checkChunkEmptyEnqueue(chunk->enqueue(position, index)))
@@ -257,18 +257,20 @@ __forceinline__ __device__ QueueChunk<typename CHUNK_TYPE::Base>* ChunkQueueVA<C
 {
 	index_t queue_chunk_index{0};
 	// We may have to wait until the first thread on this chunk has initialized it!
+	unsigned int counter = 0;
 	while((queue_chunk_index = Ouro::ldg_cg(&queue_[chunk_id])) == DeletionMarker<index_t>::val) 
 	{
-		Ouro::sleep();
+		Ouro::sleep(counter++);
 	}
 
-	__threadfence_block();
+	__threadfence();
 
 	auto queue_chunk = QueueChunkType::getAccess(memory_manager->d_data, queue_chunk_index);
 	if(!queue_chunk->checkVirtualStart(v_position))
 	{
 		if (!FINAL_RELEASE)
-			printf("Virtualized does not match for chunk: %u at position: %u with virtual start: %u  ||| v_pos: %u\n", queue_chunk_index, chunk_id, queue_chunk->virtual_start_, v_position);
+			printf("Virtualized does not match for chunk: %u at position: %u with virtual start: %u ||| v_pos: %u || numspots %u\n", 
+			queue_chunk_index, chunk_id, queue_chunk->virtual_start_, v_position, QueueChunkType::num_spots_);
 		__trap();
 	}
 

@@ -119,22 +119,22 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 			}
 			if (mode == ChunkType::ChunkAccessType::Mode::DEQUEUE_CHUNK)
 			{
-				// while(atomicCAS(&front_, current_front, current_front + 1) == current_front)
-				// {
-				// 	atomicExch(&queue_[Ouro::modPower2<size_>(current_front)], DeletionMarker<index_t>::val);
-				// 	atomicSub(&count_, 1);
-				// 	chunk_index = Ouro::ldg_cg(&queue_[Ouro::modPower2<size_>(++current_front)]);
-				// 	if(chunk_index != DeletionMarker<index_t>::val)
-				// 	{
-				// 		chunk = Chunk::getAccess(memory_manager->d_data, chunk_index);
-				// 		if(chunk->access.count != 0)
-				// 		{
-				// 			break;
-				// 		}
-				// 	}
-				// 	else
-				// 		break;
-				// }
+			// 	while(atomicCAS(&front_, current_front, current_front + 1) == current_front)
+			// 	{
+			// 		atomicExch(&queue_[Ouro::modPower2<size_>(current_front)], DeletionMarker<index_t>::val);
+			// 		atomicSub(&count_, 1);
+			// 		chunk_index = Ouro::ldg_cg(&queue_[Ouro::modPower2<size_>(++current_front)]);
+			// 		if(chunk_index != DeletionMarker<index_t>::val)
+			// 		{
+			// 			chunk = ChunkType::getAccess(memory_manager->d_data, chunk_index);
+			// 			if(chunk->access.count != 0)
+			// 			{
+			// 				break;
+			// 			}
+			// 		}
+			// 		else
+			// 			break;
+			// 	}
 
 
 

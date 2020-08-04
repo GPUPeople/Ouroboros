@@ -87,7 +87,7 @@ __forceinline__ __device__ void* PageQueueVL<CHUNK_TYPE>::allocPage(MemoryManage
 	 	enqueueChunk(memory_manager, chunk_index, pages_per_chunk);
 	});
 
-	__threadfence_block();
+	__threadfence();
 
 	unsigned int virtual_pos = atomicAdd(&front_, 1);
 	front_ptr_->template dequeue<QueueChunkType::DEQUEUE_MODE::DEQUEUE>(memory_manager, virtual_pos, index.index, &front_ptr_, &old_ptr_, &old_count_);

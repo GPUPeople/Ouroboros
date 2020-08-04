@@ -69,8 +69,9 @@ __forceinline__ __device__ ChunkAccess<SIZE, SMALLEST_PAGE>::Mode ChunkAccess<SI
 
 	// Offset in the range of 0-63
 	const int offset = (threadIdx.x + blockIdx.x) % Ouro::sizeofInBits<MaskDataType>();
-	
-	int mask = Ouro::divup(size, sizeof(MaskDataType) * BYTE_SIZE);
+
+	// TODO: Why is this not faster instead of always using the full mask?
+	// int mask = Ouro::divup(size, sizeof(MaskDataType) * BYTE_SIZE);
 	int bitmask_index = threadIdx.x;
 
 	// There is a reason why this is a while true loop and not just a loop over all MAXIMUM_MITMASK_SIZE entries
@@ -86,7 +87,7 @@ __forceinline__ __device__ ChunkAccess<SIZE, SMALLEST_PAGE>::Mode ChunkAccess<SI
 		// This way we can still use the build in __ffsll but will still start our search at different 
 		// positions
 		// Load mask -> shift by offset to the right and then append whatever was shifted out at the top
-		auto current_mask = Ouro::ldg_cg(&availability_mask[(++bitmask_index) % mask]);
+		auto current_mask = Ouro::ldg_cg(&availability_mask[(++bitmask_index) % MaximumBitMaskSize_]);
 		auto without_lower_part = current_mask >> offset;
 		auto final_mask = without_lower_part | (current_mask << (Ouro::sizeofInBits<MaskDataType>() - offset));
 
@@ -94,14 +95,14 @@ __forceinline__ __device__ ChunkAccess<SIZE, SMALLEST_PAGE>::Mode ChunkAccess<SI
 		{
 			--least_significant_bit; // Get actual bit position (as bit 0 return 1)
 			least_significant_bit = ((least_significant_bit + offset) % Ouro::sizeofInBits<MaskDataType>()); // Correct for shift
-			page_index = Ouro::sizeofInBits<MaskDataType>() * (bitmask_index % mask) // which mask
+			page_index = Ouro::sizeofInBits<MaskDataType>() * (bitmask_index % MaximumBitMaskSize_) // which mask
 				+ least_significant_bit; // which page on mask
 
 			// Please do NOT reorder here
 			__threadfence_block();
 
 			auto bit_pattern = createBitPattern(least_significant_bit);
-			current_mask = atomicAnd(&availability_mask[bitmask_index % mask], bit_pattern);
+			current_mask = atomicAnd(&availability_mask[bitmask_index % MaximumBitMaskSize_], bit_pattern);
 
 			// Please do NOT reorder here
 			__threadfence_block();

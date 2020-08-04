@@ -54,15 +54,15 @@ struct QueueChunk : public CommonChunk
 	// TODO: test with the real version later on
 	__forceinline__ __device__ __host__ void cleanChunk()
 	{
-		// for(auto i = 0U; i < num_spots_vec4; ++i)
-		// {
-		// 	reinterpret_cast<uint4*>(queue_)[i] = deletionmarker_vec4;
-		// }
-
-		for(auto i = 0U; i < num_spots_; ++i)
+		for(auto i = 0U; i < num_spots_vec4; ++i)
 		{
-			queue_[i] = DeletionMarker<QueueDataType>::val;
+			reinterpret_cast<uint4*>(queue_)[i] = deletionmarker_vec4;
 		}
+
+		// for(auto i = 0U; i < num_spots_; ++i)
+		// {
+		// 	queue_[i] = DeletionMarker<QueueDataType>::val;
+		// }
 	}
 
 	// ##############################################################################################################################################
@@ -120,6 +120,7 @@ struct QueueChunk : public CommonChunk
 	// 
 	__forceinline__ __device__ bool checkVirtualStart(const unsigned int v_position) 
 	{ 
+		// The division is necessary since v_position is just one position on that chunk, so the division rounds it down automatically
 		return (Ouro::ldg_cg(&virtual_start_) / num_spots_) == (v_position / num_spots_);
 	}
 
