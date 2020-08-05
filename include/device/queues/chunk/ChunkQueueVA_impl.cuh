@@ -97,11 +97,29 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 		enqueueChunk(memory_manager, chunk_index, pages_per_chunk);
 	});
 
+	__threadfence();
+
 	unsigned int virtual_pos = Ouro::ldg_cg(&front_);
 	while (true)
 	{
 		auto chunk_id = computeChunkID(virtual_pos);
-		auto queue_chunk = accessQueueElement(memory_manager, chunk_id, virtual_pos);
+
+		index_t queue_chunk_index{0};
+		if((queue_chunk_index = Ouro::ldg_cg(&queue_[chunk_id])) == DeletionMarker<index_t>::val) 
+		{
+			++virtual_pos;
+			continue;
+		}
+
+		auto queue_chunk = QueueChunkType::getAccess(memory_manager->d_data, queue_chunk_index);
+		if(!queue_chunk->checkVirtualStart(virtual_pos))
+		{
+			if (!FINAL_RELEASE)
+				printf("Virtualized does not match for chunk: %u at position: %u with virtual start: %u ||| v_pos: %u || numspots %u\n", 
+				queue_chunk_index, chunk_id, queue_chunk->virtual_start_, virtual_pos, QueueChunkType::num_spots_);
+			__trap();
+		}
+
 		queue_chunk->access(Ouro::modPower2<QueueChunkType::num_spots_>(virtual_pos), chunk_index);
 		if (chunk_index != DeletionMarker<index_t>::val)
 		{
@@ -120,37 +138,40 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 			}
 			if (mode == ChunkType::ChunkAccessType::Mode::DEQUEUE_CHUNK)
 			{
-				// // TODO: Why does this not work
-				// atomicMax(&front_, virtual_pos + 1);
+				atomicMax(&front_, virtual_pos + 1);
 
-				// // We moved the front pointer
-				// if(queue_chunk->deleteElement(virtual_pos % QueueChunkType::num_spots_))
-				// {
-				// 	// We can remove this chunk
-				// 	index_t reusable_chunk_id = atomicExch(&queue_[Ouro::modPower2<size_>(virtual_pos)] , DeletionMarker<index_t>::val);
-				// 	if(printDebug)
-				// 		printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, virtual_pos, queue_chunk->virtual_start_);
-				// 	memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
-				// }
-				// // Reduce count again
-				// atomicSub(&count_, 1);
-
-				if (atomicCAS(&front_, virtual_pos, virtual_pos + 1) == virtual_pos)
+				// We moved the front pointer
+				if(queue_chunk->deleteElement(Ouro::modPower2<QueueChunkType::num_spots_>(virtual_pos)))
 				{
-					//printf("We can dequeue this chunk %u\n", chunk_id);
-					// Reduce count again
-					atomicSub(&count_, 1);
+					// TODO: Here we have the problem, that if we remove this chunk at this point, some other thread might still have the old
+					// front and will then hang in "accessQueueElement", as this position is then a deletion marker
 
-					// We moved the front pointer
-					if(queue_chunk->deleteElement(Ouro::modPower2<QueueChunkType::num_spots_>(virtual_pos)))
-					{
-						// We can remove this chunk
-						index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
-						if(!FINAL_RELEASE && printDebug)
-							printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, chunk_id, queue_chunk->virtual_start_);
-						memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
-					}
+					// We can remove this chunk
+					index_t reusable_chunk_id = atomicExch(&queue_[Ouro::modPower2<size_>(chunk_id)] , DeletionMarker<index_t>::val);
+					if(printDebug)
+						printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, virtual_pos, queue_chunk->virtual_start_);
+					queue_chunk->cleanChunk();
+					memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
 				}
+				// Reduce count again
+				atomicSub(&count_, 1);
+
+				// if (atomicCAS(&front_, virtual_pos, virtual_pos + 1) == virtual_pos)
+				// {
+				// 	//printf("We can dequeue this chunk %u\n", chunk_id);
+				// 	// Reduce count again
+				// 	atomicSub(&count_, 1);
+
+				// 	// We moved the front pointer
+				// 	if(queue_chunk->deleteElement(Ouro::modPower2<QueueChunkType::num_spots_>(virtual_pos)))
+				// 	{
+				// 		// // We can remove this chunk
+				// 		// index_t reusable_chunk_id = atomicExch(queue_ + chunk_id, DeletionMarker<index_t>::val);
+				// 		// if(!FINAL_RELEASE && printDebug)
+				// 		// 	printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, chunk_id, queue_chunk->virtual_start_);
+				// 		// memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
+				// 	}
+				// }
 				break;
 			}
 		}
@@ -262,8 +283,6 @@ __forceinline__ __device__ QueueChunk<typename CHUNK_TYPE::Base>* ChunkQueueVA<C
 	{
 		Ouro::sleep(counter++);
 	}
-
-	__threadfence();
 
 	auto queue_chunk = QueueChunkType::getAccess(memory_manager->d_data, queue_chunk_index);
 	if(!queue_chunk->checkVirtualStart(v_position))

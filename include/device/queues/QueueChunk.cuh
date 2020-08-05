@@ -25,7 +25,7 @@ struct QueueChunk : public CommonChunk
 	// Static members
 	static constexpr auto size_{ChunkBase::size_};
 	static constexpr unsigned int num_spots_{ size_ / sizeof(QueueDataType) }; // How many indices can one QueueChunk store
-	static constexpr unsigned int shift_value {(sizeof(unsigned int) * 8) / 2}; // Given count, how many bits given for countA
+	static constexpr unsigned int shift_value {(sizeof(unsigned int) * BYTE_SIZE) / 2}; // Given count, how many bits given for countA
 	static constexpr unsigned int lower_mask {(1 << shift_value) - 1}; // Mask to get countA
 	static constexpr unsigned int upper_mask {~lower_mask}; // Mask to get countB
 	static constexpr int vector_width{4}; // How large is the vector store unit
