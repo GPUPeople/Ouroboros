@@ -149,7 +149,8 @@ __forceinline__ __device__ void* PageQueueVA<CHUNK_TYPE>::allocPage(MemoryManage
 	 	enqueueChunk(memory_manager, chunk_index, pages_per_chunk);
 	});
 
-	unsigned int virtual_pos = atomicAdd(&front_, 1);
+	// unsigned int virtual_pos = atomicAdd(&front_, 1);
+	unsigned int virtual_pos = Ouro::atomicAggInc(&front_);
 	unsigned int chunk_id = computeChunkID(virtual_pos);
 
 	// Get index from queue
@@ -193,7 +194,8 @@ template <typename CHUNK_TYPE>
 template <typename MemoryManagerType>
 __forceinline__ __device__ void PageQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerType* memory_manager, index_t index)
 {
-	const unsigned int virtual_pos = atomicAdd(&back_, 1);
+	// const unsigned int virtual_pos = atomicAdd(&back_, 1);
+	const unsigned int virtual_pos = Ouro::atomicAggInc(&back_);
 	auto chunk_id = computeChunkID(virtual_pos);
 	const auto position = (virtual_pos % QueueChunkType::num_spots_);
 

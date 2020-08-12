@@ -64,5 +64,26 @@ namespace Ouro
 	#endif
 	#endif
 	}
+
+	__forceinline__ __device__ int atomicAggInc(unsigned int *ptr)
+	{
+		#ifdef __CUDA_ARCH__
+		#if(__CUDA_ARCH__ >= 700)
+		int mask = __match_any_sync(__activemask(), reinterpret_cast<unsigned long long>(ptr));
+		int leader = __ffs(mask) - 1;
+		int res;
+		if(lane_id() == leader)
+			res = atomicAdd(ptr, __popc(mask));
+		res = __shfl_sync(mask, res, leader);
+		return res + __popc(mask & ((1 << lane_id()) - 1));
+		#else
+		return atomicAdd(ptr, 1);
+		#endif
+		#else
+		auto val = *ptr;
+		*ptr += 1;
+		return val;
+		#endif
+	}
 }
 

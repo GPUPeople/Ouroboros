@@ -25,7 +25,8 @@ __forceinline__ __device__ bool PageQueue<ChunkType>::enqueue(index_t chunk_inde
 	{
 		//we have to wait in case there is still something in the spot
 		// note: as the filllevel could be increased by this thread, we are certain that the spot will become available
-		unsigned int pos = Ouro::modPower2<size_>(atomicAdd(&back_, 1));
+		// unsigned int pos = Ouro::modPower2<size_>(atomicAdd(&back_, 1));
+		unsigned int pos = Ouro::modPower2<size_>(Ouro::atomicAggInc(&back_));
 		while (atomicCAS(queue_ + pos, DeletionMarker<index_t>::val, chunk_index) != DeletionMarker<index_t>::val)
 			Ouro::sleep();
 		return true;
@@ -83,7 +84,11 @@ template <typename ChunkType>
 __forceinline__ __device__ void PageQueue<ChunkType>::dequeue(MemoryIndex& index)
 {
 	// Dequeue from queue
-	unsigned int pos = Ouro::modPower2<size_>(atomicAdd(&front_, 1));
+	// #if (__CUDA_ARCH__ < 700)
+	// unsigned int pos = Ouro::modPower2<size_>(atomicAdd(&front_, 1));
+	// #else
+	unsigned int pos = Ouro::modPower2<size_>(Ouro::atomicAggInc(&front_));
+	// #endif
 	auto counter {0U};
 	while ((index.index = atomicExch(queue_ + pos, DeletionMarker<index_t>::val)) == DeletionMarker<index_t>::val)
 	{
