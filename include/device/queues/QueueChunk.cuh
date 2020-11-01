@@ -52,17 +52,18 @@ struct QueueChunk : public CommonChunk
 	CommonChunk{0}, queue_{queue}, chunk_index_{chunk_index}, virtual_start_{virtual_start} {}
 
 	// TODO: test with the real version later on
-	__forceinline__ __device__ __host__ void cleanChunk()
+	__forceinline__ __device__ void cleanChunk()
 	{
-		for(auto i = 0U; i < num_spots_vec4; ++i)
-		{
-			reinterpret_cast<uint4*>(queue_)[i] = deletionmarker_vec4;
-		}
-
-		// for(auto i = 0U; i < num_spots_; ++i)
+		// for(auto i = 0U; i < num_spots_vec4; ++i)
 		// {
-		// 	queue_[i] = DeletionMarker<QueueDataType>::val;
+		// 	reinterpret_cast<uint4*>(queue_)[i] = deletionmarker_vec4;
 		// }
+
+		for(auto i = 0U; i < num_spots_; ++i)
+		{
+			// queue_[i] = DeletionMarker<QueueDataType>::val;
+			atomicExch(&queue_[i], DeletionMarker<QueueDataType>::val);
+		}
 	}
 
 	// ##############################################################################################################################################

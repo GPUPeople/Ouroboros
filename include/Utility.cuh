@@ -30,6 +30,14 @@ namespace Ouro
 		return dest;
 	}
 
+	__forceinline__ __device__ const unsigned int& stg_cg(unsigned int* dest, const unsigned int& src)
+	{
+	#ifdef __CUDA_ARCH__
+		asm volatile("st.global.cg.u32 [%0], %1;" : : "l"(dest), "r"(src));
+	#endif
+		return src;
+	}
+
 	__forceinline__ __device__ void store(volatile uint4* dest, const uint4& src)
 	{
 	#ifdef __CUDA_ARCH__

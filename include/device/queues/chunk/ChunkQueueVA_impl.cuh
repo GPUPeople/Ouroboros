@@ -148,8 +148,8 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 
 					// We can remove this chunk
 					index_t reusable_chunk_id = atomicExch(&queue_[Ouro::modPower2<size_>(chunk_id)] , DeletionMarker<index_t>::val);
-					if(printDebug)
-						printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, virtual_pos, queue_chunk->virtual_start_);
+					// if(printDebug)
+					// 	printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, virtual_pos, queue_chunk->virtual_start_);
 					queue_chunk->cleanChunk();
 					memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
 				}
