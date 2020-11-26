@@ -87,13 +87,15 @@ __forceinline__ __device__ void* ChunkQueueVL<CHUNK_TYPE>::allocPage(MemoryManag
 	__threadfence_block();
 
 	unsigned int virtual_pos = Ouro::ldg_cg(&front_);
+	auto queue_chunk = front_ptr_;
 	while(true)
 	{
-		front_ptr_->accessLinked(virtual_pos, chunk_index);
+		queue_chunk = queue_chunk->accessLinked(virtual_pos);
 
 		__threadfence_block();
 
 		// This position might be out-dated already
+		queue_chunk->access(Ouro::modPower2<QueueChunkType::num_spots_>(virtual_pos), chunk_index);
 		if(chunk_index != DeletionMarker<index_t>::val)
 		{
 			chunk = ChunkType::getAccess(memory_manager->d_data, chunk_index);
@@ -109,13 +111,14 @@ __forceinline__ __device__ void* ChunkQueueVL<CHUNK_TYPE>::allocPage(MemoryManag
 			}
 			if (mode == ChunkType::ChunkAccessType::Mode::DEQUEUE_CHUNK)
 			{
-				if (atomicCAS(&front_, virtual_pos, virtual_pos + 1) == virtual_pos)
-				{
-					front_ptr_->dequeue<QueueChunkType::DEQUEUE_MODE::DELETE>(memory_manager, virtual_pos, index.index, &front_ptr_, &old_ptr_, &old_count_);
-				}
+				// if (atomicCAS(&front_, virtual_pos, virtual_pos + 1) == virtual_pos)
+				// {
+				// 	front_ptr_->dequeue<QueueChunkType::DEQUEUE_MODE::DELETE>(memory_manager, virtual_pos, index.index, &front_ptr_, &old_ptr_, &old_count_);
+				// }
+
 				// TODO: Why does this not work
-				// atomicMax(&front_, virtual_pos + 1);
-				// front_ptr_->dequeue<QueueChunkType::DEQUEUE_MODE::DELETE>(memory_manager, virtual_pos, index.index, &front_ptr_, &old_ptr_, &old_count_);
+				atomicMax(&front_, virtual_pos + 1);
+				front_ptr_->dequeue<QueueChunkType::DEQUEUE_MODE::DELETE>(memory_manager, virtual_pos, index.index, &front_ptr_, &old_ptr_, &old_count_);
 				break;
 			}
 		}

@@ -429,6 +429,15 @@ __forceinline__ __device__ void QueueChunk<ChunkBase>::accessLinked(const unsign
 // ##############################################################################################################################################
 //
 template <typename ChunkBase>
+__forceinline__ __device__ QueueChunk<ChunkBase>* QueueChunk<ChunkBase>::accessLinked(const unsigned position)
+{
+	// Traverse to correct chunk and then access queue_ at correct position
+	return locateQueueChunkForPosition(position, "ACCESSLINKED");
+}
+
+// ##############################################################################################################################################
+//
+template <typename ChunkBase>
 __forceinline__ __device__ void QueueChunk<ChunkBase>::setBackPointer(QueueChunk<ChunkBase>** queue_next_ptr)
 {
 	// INFO: setNextPointer is only called, if all spots on this chunk called their enqueue, at which point next_ must have been set already

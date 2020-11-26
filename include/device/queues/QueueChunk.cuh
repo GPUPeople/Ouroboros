@@ -115,6 +115,7 @@ struct QueueChunk : public CommonChunk
 	// ##############################################################################################################################################
 	// 
 	__forceinline__ __device__ void accessLinked(const unsigned int position, QueueDataType& element);
+	__forceinline__ __device__ QueueChunk<ChunkBase>* accessLinked(const unsigned int position);
 
 	// ##############################################################################################################################################
 	// 
