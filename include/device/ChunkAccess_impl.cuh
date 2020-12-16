@@ -81,8 +81,15 @@ __forceinline__ __device__ ChunkAccess<SIZE, SMALLEST_PAGE>::Mode ChunkAccess<SI
 	// A second thread decrements the count and starts looking at mask 3 -> finds the bit immediately
 	// The first thread would now look at mask 2 - 3 - 4 ... and not find the bit on mask 1, as it already looked there
 	// Hence, we need a while(true) loop, since we are guaranteed to find a bit, but not guaranteed that someone steals our bit
+	// unsigned int iters{0U};
 	while(true)
 	{
+		// if(++iters >= 10000000)
+		// {
+		// 	printf("%d - %d | On Chunk: %u ---  What the hello with current count received: %u\n", blockIdx.x, threadIdx.x, chunk_id, current_count);
+		// 	__trap();
+		// }
+
 		// We want each thread starting at a different position, for this we do a circular shift
 		// This way we can still use the build in __ffsll but will still start our search at different 
 		// positions

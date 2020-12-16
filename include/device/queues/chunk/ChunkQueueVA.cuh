@@ -65,7 +65,7 @@ struct ChunkQueueVA
 	template <typename MemoryManagerType>
 	__forceinline__ __device__ QueueChunkType* accessQueueElement(MemoryManagerType* memory_manager, index_t chunk_id, index_t v_position);
 	template <typename MemoryManagerType>
-	__forceinline__ __device__ void enqueue(MemoryManagerType* memory_manager, index_t index);
+	__forceinline__ __device__ void enqueue(MemoryManagerType* memory_manager, index_t index, typename MemoryManagerType::ChunkType* chunk);
 	template <typename MemoryManagerType>
-	__forceinline__ __device__ bool enqueueChunk(MemoryManagerType* memory_manager, index_t chunk_index, index_t pages_per_chunk);
+	__forceinline__ __device__ bool enqueueChunk(MemoryManagerType* memory_manager, index_t chunk_index, index_t pages_per_chunk, typename MemoryManagerType::ChunkType* chunk);
 };

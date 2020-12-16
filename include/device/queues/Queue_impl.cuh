@@ -40,11 +40,9 @@ __forceinline__ __device__ bool IndexQueue::enqueue(index_t i)
 template <int CHUNK_SIZE>
 __forceinline__ __device__ bool IndexQueue::enqueueClean(index_t i, index_t* chunk_data_ptr)
 {
-	static constexpr uint4 deletionmarker_vec4{DeletionMarker<index_t>::val, DeletionMarker<index_t>::val, DeletionMarker<index_t>::val, DeletionMarker<index_t>::val};
-	// Clean chunk first
-	for (auto i = 0U; i < (CHUNK_SIZE / (sizeof(index_t) * 4)); ++i)
+	for(auto i = 0U; i < (CHUNK_SIZE / (sizeof(index_t))); ++i)
 	{
-		reinterpret_cast<uint4*>(chunk_data_ptr)[i] = deletionmarker_vec4;
+		atomicExch(&chunk_data_ptr[i], DeletionMarker<index_t>::val);
 	}
 
 	__threadfence_block();

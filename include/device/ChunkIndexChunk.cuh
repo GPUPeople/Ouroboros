@@ -15,7 +15,7 @@ struct ChunkIndexChunk : public CommonChunk
 	// Members
 	ChunkAccessType access;
 	unsigned int queue_pos{DeletionMarker<unsigned int>::val};
-	unsigned int identifier{ CHUNK_IDENTIFIER };
+	// unsigned int identifier{ CHUNK_IDENTIFIER };
 
 	// ##########################################################################################################################
 	// ##########################################################################################################################
@@ -40,6 +40,14 @@ struct ChunkIndexChunk : public CommonChunk
 		return ChunkBase::getData(memory, chunk_index);
 	}
 
+	__forceinline__ __device__ void cleanChunk(unsigned int* data)
+	{
+		for(auto i = 0U; i < (SIZE - CHUNK_METADATA_SIZE) / sizeof(unsigned int); ++i)
+		{
+			atomicExch(&data[i], DeletionMarker<index_t>::val);
+		}
+	}
+
 	__forceinline__ __device__ __host__ void* getPage(memory_t* memory, const index_t chunk_index, const uint32_t page_index)
 	{
 		return ChunkBase::getPage(memory, chunk_index, page_index, page_size);
@@ -54,13 +62,6 @@ struct ChunkIndexChunk : public CommonChunk
 	{
 		return reinterpret_cast<ChunkIndexChunk*>(Base::getMemoryAccess(memory, chunk_index));
 	}
-
-	// template <typename QI>
-	// static __forceinline__ __device__ index_t getQueueIndexFromPage(memory_t* memory, void* page)
-	// {
-	// 	auto chunk = reinterpret_cast<ChunkIndexChunk*>(ChunkBase::getIndexFromPointer(memory, page));
-	// 	return QI::getQueueIndex(chunk->page_size);
-	// }
 
 	template <typename QI>
 	static __forceinline__ __device__ index_t getQueueIndexFromPage(memory_t* memory, index_t chunk_index) 

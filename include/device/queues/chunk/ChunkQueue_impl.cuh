@@ -29,19 +29,21 @@ __forceinline__ __device__ bool ChunkQueue<ChunkType>::enqueue(index_t chunk_ind
 		// note: as the filllevel could be increased by this thread, we are certain that the spot will become available
 		unsigned int pos = Ouro::modPower2<size_>(atomicAdd(&back_, 1));
 
-		if(chunk)
-			chunk->queue_pos = pos;
-
 		// unsigned int counter{0};
 		while (atomicCAS(queue_ + pos, DeletionMarker<index_t>::val, chunk_index) != DeletionMarker<index_t>::val)
 		{
 			Ouro::sleep();
 			// Ouro::sleep(++counter);
-			// if(++counter > 10000000)
+			// if(++counter > 1000)
 			// {
 			// 	printf("%d - %d Died in ChunkQueue::enqueue!\n", threadIdx.x, blockIdx.x);
 			// }
 		}
+
+		__threadfence_block();
+
+		if(chunk)
+			atomicExch(&chunk->queue_pos, pos);
 		return true;
 	}
 
@@ -93,11 +95,10 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 			if (!FINAL_RELEASE)
 				printf("TODO: Could not allocate chunk!!!\n");
 		}
-
 	 	chunk = ChunkType::initializeEmptyChunk(memory_manager->d_data, chunk_index, pages_per_chunk);
 		 // Please do NOT reorder here
 		__threadfence_block();
-	 	enqueueChunk(chunk_index, pages_per_chunk, chunk);
+		 enqueueChunk(chunk_index, pages_per_chunk, chunk);
 	});
 
 	auto current_front = Ouro::ldg_cg(&front_);
@@ -119,31 +120,11 @@ __forceinline__ __device__ void* ChunkQueue<ChunkType>::allocPage(MemoryManagerT
 			}
 			if (mode == ChunkType::ChunkAccessType::Mode::DEQUEUE_CHUNK)
 			{
-			// 	while(atomicCAS(&front_, current_front, current_front + 1) == current_front)
-			// 	{
-			// 		atomicExch(&queue_[Ouro::modPower2<size_>(current_front)], DeletionMarker<index_t>::val);
-			// 		atomicSub(&count_, 1);
-			// 		chunk_index = Ouro::ldg_cg(&queue_[Ouro::modPower2<size_>(++current_front)]);
-			// 		if(chunk_index != DeletionMarker<index_t>::val)
-			// 		{
-			// 			chunk = ChunkType::getAccess(memory_manager->d_data, chunk_index);
-			// 			if(chunk->access.count != 0)
-			// 			{
-			// 				break;
-			// 			}
-			// 		}
-			// 		else
-			// 			break;
-			// 	}
-
-
-
 				// We moved the front pointer
 				atomicMax(&front_, current_front + 1);
+				atomicExch(&chunk->queue_pos, DeletionMarker<index_t>::val);
 				atomicExch(&queue_[Ouro::modPower2<size_>(current_front)], DeletionMarker<index_t>::val);
 				atomicSub(&count_, 1);
-				
-
 				break;
 			}
 		}
@@ -179,7 +160,6 @@ __forceinline__ __device__ void ChunkQueue<ChunkType>::freePage(MemoryManagerTyp
 		// We are the first to free something in this chunk, add it back to the queue
 		enqueue(index.getChunkIndex(), chunk);
 	}
-	// TODO: This is NOT guaranteed to work as intended as signal happens after free
 	else if(mode == ChunkType::ChunkAccessType::FreeMode::DEQUEUE && Ouro::ldg_cg(&count_) > lower_fill_level)
 	{
 		auto num_pages_per_chunk{chunk->access.size};
@@ -190,12 +170,15 @@ __forceinline__ __device__ void ChunkQueue<ChunkType>::freePage(MemoryManagerTyp
 			// Lets try to flash the chunk
 			if(chunk->access.tryFlashChunk())
 			{
+				// Make sure that a previous enqueue operation is finished -> we have a valid queue position
+				while(atomicCAS(&chunk->queue_pos, DeletionMarker<index_t>::val, DeletionMarker<index_t>::val) == DeletionMarker<index_t>::val)
+					Ouro::sleep();
 				// Reduce queue count, take element out of queue and put it into the reuse queue
 				atomicExch(queue_ + chunk->queue_pos, DeletionMarker<index_t>::val);
 				atomicSub(&count_, 1);
-				memory_manager->d_chunk_reuse_queue.template enqueueClean<MemoryManagerType::ChunkSize_>(index.getChunkIndex(), reinterpret_cast<index_t*>(reinterpret_cast<memory_t*>(chunk) + ChunkType::meta_data_size_));
+				memory_manager->enqueueChunkForReuse<false>(index.getChunkIndex());
 				if(!FINAL_RELEASE && printDebug)
-					printf("Successfull re-use of chunk\n");
+					printf("Successfull re-use of chunk %u\n", index.getChunkIndex());
 				if(statistics_enabled)
 					atomicAdd(&(memory_manager->stats.chunkReuseCount), 1);
 			}
@@ -211,7 +194,7 @@ __forceinline__ __device__ void ChunkQueue<ChunkType>::freePage(MemoryManagerTyp
 		else
 		{
 			if(!FINAL_RELEASE && printDebug)
-				printf("Try Reduce did not work!\n");
+				printf("Try Reduce did not work for chunk %u!\n", index.getChunkIndex());
 		}
 	}
 

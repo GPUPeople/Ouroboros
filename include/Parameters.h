@@ -11,7 +11,7 @@ static constexpr int chunk_queue_size{ 65536 }; // Size of chunk queue for re-us
 static constexpr int page_queue_size{ 1024 * 1024 * 8 }; // Size of page queue
 static constexpr int virtual_queue_size{ 16384 }; // Size of virtual page queue
 static constexpr unsigned int LARGEST_OLD_COUNT_VALUE{10}; // How many old chunks to holds back before releasing them
-static constexpr float LOWER_FILL_LEVEL_PERCENTAGE{0.2f}; // When to start releasing chunks from chunk queue
+static constexpr float LOWER_FILL_LEVEL_PERCENTAGE{0.1f}; // When to start releasing chunks from chunk queue
 
 // Memory Params
 static constexpr int SMALLEST_PAGE_SIZE{ 16}; // Smallest page size (16 Bytes)
@@ -32,7 +32,7 @@ static constexpr int NUM_BITS_FOR_PAGE{ countBitShift(CHUNK_SIZE / SMALLEST_PAGE
 
 // Print & Statistics
 static constexpr bool turn_off_all_print_output{false};
-static constexpr bool turn_off_all_metric{ turn_off_all_print_output || true };
+static constexpr bool turn_off_all_metric{ turn_off_all_print_output || false };
 static constexpr bool fragmentation_print{false};
 
 static constexpr bool debug_enabled{ !turn_off_all_metric && true };

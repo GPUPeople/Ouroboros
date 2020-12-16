@@ -32,11 +32,11 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::init(MemoryManagerType
 //
 template <typename CHUNK_TYPE>
 template <typename MemoryManagerType>
-__forceinline__ __device__ bool ChunkQueueVA<CHUNK_TYPE>::enqueueChunk(MemoryManagerType* memory_manager, index_t chunk_index, index_t pages_per_chunk)
+__forceinline__ __device__ bool ChunkQueueVA<CHUNK_TYPE>::enqueueChunk(MemoryManagerType* memory_manager, index_t chunk_index, index_t pages_per_chunk, typename MemoryManagerType::ChunkType* chunk)
 {
 	if (atomicAdd(&count_, 1) < static_cast<int>(num_spots_))
 	{
-		enqueue(memory_manager, chunk_index);
+		enqueue(memory_manager, chunk_index, chunk);
 		// Please do NOT reorder here
 		__threadfence();
 		semaphore.signalExpected(pages_per_chunk);
@@ -91,10 +91,10 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 				printf("TODO: Could not allocate chunk!!!\n");
 		}
 
-		ChunkType::initializeChunk(memory_manager->d_data, chunk_index, pages_per_chunk, pages_per_chunk);
+		chunk = ChunkType::initializeChunk(memory_manager->d_data, chunk_index, pages_per_chunk, pages_per_chunk);
 		// Please do NOT reorder here
 		__threadfence();
-		enqueueChunk(memory_manager, chunk_index, pages_per_chunk);
+		enqueueChunk(memory_manager, chunk_index, pages_per_chunk, chunk);
 	});
 
 	__threadfence();
@@ -132,7 +132,7 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 				// Pretty special case, but we simply enqueue in the end again
 				if (atomicAdd(&count_, 1) < static_cast<int>(num_spots_))
 				{
-					enqueue(memory_manager, chunk_index);
+					enqueue(memory_manager, chunk_index, chunk);
 				}
 				break;
 			}
@@ -143,9 +143,6 @@ __forceinline__ __device__ void* ChunkQueueVA<CHUNK_TYPE>::allocPage(MemoryManag
 				// We moved the front pointer
 				if(queue_chunk->deleteElement(Ouro::modPower2<QueueChunkType::num_spots_>(virtual_pos)))
 				{
-					// TODO: Here we have the problem, that if we remove this chunk at this point, some other thread might still have the old
-					// front and will then hang in "accessQueueElement", as this position is then a deletion marker
-
 					// We can remove this chunk
 					index_t reusable_chunk_id = atomicExch(&queue_[Ouro::modPower2<size_>(chunk_id)] , DeletionMarker<index_t>::val);
 					// if(printDebug)
@@ -212,7 +209,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::freePage(MemoryManager
 		// We are the first to free something in this chunk, add it back to the queue
 		if (atomicAdd(&count_, 1) < static_cast<int>(num_spots_))
 		{
-			enqueue(memory_manager, index.getChunkIndex());
+			enqueue(memory_manager, index.getChunkIndex(), chunk);
 		}
 		else
 		{
@@ -224,8 +221,45 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::freePage(MemoryManager
 	else if(mode == ChunkType::ChunkAccessType::FreeMode::DEQUEUE)
 	{
 		// TODO: Implement dequeue chunks
-		if(!FINAL_RELEASE && printDebug)
-			printf("I guess I should actually dequeue at this point!\n");
+		auto num_pages_per_chunk{chunk->access.size};
+		// Try to reduce semaphore
+		if(semaphore.tryReduce(num_pages_per_chunk - 1))
+		{
+			// Lets try to flash the chunk
+			if(false && chunk->access.tryFlashChunk())
+			{
+				// auto queue_chunk = accessQueueElement(memory_manager, index.getChunkIndex(), chunk->queue_pos);
+				// if(queue_chunk->deleteElement(Ouro::modPower2<QueueChunkType::num_spots_>(chunk->queue_pos)))
+				// {
+				// 	// We can remove this chunk
+				// 	index_t reusable_chunk_id = atomicExch(&queue_[Ouro::modPower2<size_>(computeChunkID(chunk->queue_pos))] , DeletionMarker<index_t>::val);
+				// 	// if(printDebug)
+				// 	// 	printf("We can reuse this chunk: %5u at position: %5u with virtual start: %10u | AllocPage-Reuse\n", reusable_chunk_id, virtual_pos, queue_chunk->virtual_start_);
+				// 	queue_chunk->cleanChunk();
+				// 	memory_manager->template enqueueChunkForReuse<false>(reusable_chunk_id);
+				// }
+				chunk->cleanChunk(reinterpret_cast<unsigned int*>(reinterpret_cast<memory_t*>(chunk) + ChunkType::size_));
+				// atomicSub(&count_, 1);
+				// memory_manager->enqueueChunkForReuse<false>(index.getChunkIndex());
+				if(!FINAL_RELEASE && printDebug)
+					printf("Successfull re-use of chunk %u\n", index.getChunkIndex());
+				if(statistics_enabled)
+					atomicAdd(&(memory_manager->stats.chunkReuseCount), 1);
+			}
+			else
+			{
+				if(!FINAL_RELEASE && printDebug)
+					printf("Try Flash Chunk did not work!\n");
+				// Flashing did not work, increase semaphore again by all pages
+				semaphore.signal(num_pages_per_chunk);
+			}
+			return;
+		}
+		else
+		{
+			if(!FINAL_RELEASE && printDebug)
+				printf("Try Reduce did not work for chunk %u!\n", index.getChunkIndex());
+		}
 	}
 
 	// Please do NOT reorder here
@@ -239,7 +273,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::freePage(MemoryManager
 //
 template <typename CHUNK_TYPE>
 template <typename MemoryManagerType>
-__forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerType* memory_manager, index_t index)
+__forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerType* memory_manager, index_t index, typename MemoryManagerType::ChunkType* chunkindex_chunk)
 {
 	const unsigned int virtual_pos = atomicAdd(&back_, 1);
 	auto chunk_id = computeChunkID(virtual_pos);
@@ -259,6 +293,7 @@ __forceinline__ __device__ void ChunkQueueVA<CHUNK_TYPE>::enqueue(MemoryManagerT
 	__threadfence();
 
 	auto chunk = accessQueueElement(memory_manager, chunk_id, virtual_pos);
+	chunkindex_chunk->queue_pos = virtual_pos;
 	if(QueueChunkType::checkChunkEmptyEnqueue(chunk->enqueue(position, index)))
 	{
 		// We can remove this chunk

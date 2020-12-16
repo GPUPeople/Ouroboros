@@ -160,8 +160,35 @@ __forceinline__ __device__ void ChunkQueueVL<CHUNK_TYPE>::freePage(MemoryManager
 	else if(mode == ChunkType::ChunkAccessType::FreeMode::DEQUEUE)
 	{
 		// TODO: Implement dequeue chunks
-		if(!FINAL_RELEASE && printDebug)
-			printf("I guess I should actually dequeue at this point!\n");
+		// auto num_pages_per_chunk{chunk->access.size};
+		// // Try to reduce semaphore
+		// if(semaphore.tryReduce(num_pages_per_chunk - 1))
+		// {
+		// 	// Lets try to flash the chunk
+		// 	if(false && chunk->access.tryFlashChunk())
+		// 	{
+		// 		chunk->cleanChunk(reinterpret_cast<unsigned int*>(reinterpret_cast<memory_t*>(chunk) + ChunkType::size_));
+		// 		front_ptr_->dequeue<QueueChunkType::DEQUEUE_MODE::DELETE>(memory_manager, chunk->queue_pos, index.index, &front_ptr_, &old_ptr_, &old_count_);
+		// 		memory_manager->enqueueChunkForReuse<false>(index.getChunkIndex());
+		// 		if(!FINAL_RELEASE && printDebug)
+		// 			printf("Successfull re-use of chunk %u\n", index.getChunkIndex());
+		// 		if(statistics_enabled)
+		// 			atomicAdd(&(memory_manager->stats.chunkReuseCount), 1);
+		// 	}
+		// 	else
+		// 	{
+		// 		if(!FINAL_RELEASE && printDebug)
+		// 			printf("Try Flash Chunk did not work!\n");
+		// 		// Flashing did not work, increase semaphore again by all pages
+		// 		semaphore.signal(num_pages_per_chunk);
+		// 	}
+		// 	return;
+		// }
+		// else
+		// {
+		// 	if(!FINAL_RELEASE && printDebug)
+		// 		printf("Try Reduce did not work for chunk %u!\n", index.getChunkIndex());
+		// }
 	}
 	// Please do NOT reorder here
 	__threadfence_block();
